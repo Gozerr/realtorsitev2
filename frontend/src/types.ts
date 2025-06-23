@@ -23,25 +23,41 @@ export enum PropertyStatus {
 }
 
 export interface Property {
-  id: number;
+  id: string;
   title: string;
   address: string;
   price: number;
-  description: string;
-  agent: User;
-  createdAt: string;
-  status: PropertyStatus;
-  isExclusive: boolean;
+  status: string; // например: "В продаже", "Сдано", "Эксклюзив"
+  images: string[];
+  agency: string;
+  datePublished: string;
+  description?: string;
+  type?: string; // например: "Квартира", "Дом", "Коммерция"
+  area?: number; // площадь, м²
+  rooms?: number;
+  floor?: number;
+  totalFloors?: number;
+  latitude?: number;
+  longitude?: number;
+  [key: string]: any; // для расширяемости
 }
 
 export interface CreatePropertyData {
   title: string;
   address: string;
   price: number;
-  description: string;
-  status?: PropertyStatus;
-  isExclusive?: boolean;
-}
+  status: string;
+  images: string[];
+  agency: string;
+  description?: string;
+  type?: string;
+  area?: number;
+  rooms?: number;
+  floor?: number;
+  totalFloors?: number;
+  latitude?: number;
+  longitude?: number;
+} 
 
 export enum ClientStatus {
   NEW = 'new',

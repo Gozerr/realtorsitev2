@@ -43,6 +43,16 @@ const subscriptionMock = {
 const offerText = `
 1. Общие положения\n1.1. Настоящий документ является публичной офертой (далее — «Оферта») ООО «РиэлтиПро» (далее — «Компания») и содержит все существенные условия использования программного обеспечения «РиэлтиПро» (далее — «Сервис»).\n1.2. В соответствии с пунктом 2 статьи 437 Гражданского Кодекса Российской Федерации (ГК РФ), в случае принятия изложенных ниже условий и оплаты услуг юридическое или физическое лицо, производящее акцепт этой оферты, становится Пользователем (в соответствии с пунктом 3 статьи 438 ГК РФ акцепт оферты равносилен заключению договора на условиях, изложенных в оферте).\n\n2. Предмет оферты\n2.1. Предметом настоящей Оферты является предоставление Пользователю доступа к использованию Сервиса на условиях, изложенных в настоящей Оферте.\n2.2. Сервис представляет собой программное обеспечение для автоматизации работы агентств недвижимости и риэлторов.\n\n3. Условия использования\n3.1. Пользователь обязуется использовать Сервис только в соответствии с условиями настоящей Оферты и не нарушать права других пользователей.\n3.2. Пользователь несет ответственность за сохранность своих учетных данных и за все действия, совершенные с использованием его учетной записи.\n\n4. Стоимость услуг и порядок расчетов\n...`;
 
+const profileMock = {
+  name: 'Медведева Мария Александровна',
+  photo: 'https://olimp.vtcrm.ru/uploads/User_photos/phpXxFFcI.jpeg',
+  phone: '+7(930)137-50-17',
+  email: '9301375017R@gmail.com',
+  telegram: 'https://t.me/+79301375017',
+  position: 'Агент Ярославля',
+  birthdate: '08.02.95',
+};
+
 const tabItems = [
   {
     key: 'profile',
@@ -50,25 +60,21 @@ const tabItems = [
     children: (
       <div style={{ width: '100%', marginTop: 24 }}>
         <Title level={4}>Личная информация</Title>
-        <Text type="secondary">Управляйте своими личными данными и настройками аккаунта</Text>
+        <Text type="secondary">Ваши данные из CRM</Text>
         <Row gutter={24} style={{ marginTop: 24 }}>
           <Col span={4} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Avatar size={80} icon={<UserOutlined />} />
+            <Avatar size={80} src={profileMock.photo} />
           </Col>
           <Col span={20}>
-            <Row gutter={16}>
-              <Col span={12}><Input value={userMock.firstName} disabled addonBefore="Имя" /></Col>
-              <Col span={12}><Input value={userMock.lastName} disabled addonBefore="Фамилия" /></Col>
+            <Title level={5} style={{ margin: 0 }}>{profileMock.name}</Title>
+            <Text type="secondary">{profileMock.position}</Text>
+            <Row gutter={16} style={{ marginTop: 16 }}>
+              <Col span={12}><Input value={profileMock.phone} disabled addonBefore="Телефон" /></Col>
+              <Col span={12}><Input value={profileMock.email} disabled addonBefore="Email" /></Col>
             </Row>
             <Row gutter={16} style={{ marginTop: 12 }}>
-              <Col span={12}><Input value={userMock.phone} disabled addonBefore="Телефон" /></Col>
-              <Col span={12}><Input value={userMock.email} disabled addonBefore="Email" /></Col>
-            </Row>
-            <Row style={{ marginTop: 12 }}>
-              <Col span={24}>
-                <div style={{ marginBottom: 4, color: '#888' }}>О себе</div>
-                <Input.TextArea value={userMock.about} disabled rows={2} />
-              </Col>
+              <Col span={12}><Input value={profileMock.telegram} disabled addonBefore="Telegram" /></Col>
+              <Col span={12}><Input value={profileMock.birthdate} disabled addonBefore="Дата рождения" /></Col>
             </Row>
           </Col>
         </Row>

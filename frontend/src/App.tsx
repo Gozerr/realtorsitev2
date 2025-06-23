@@ -18,6 +18,7 @@ import EducationPage from './pages/EducationPage';
 import { ThemeProvider } from './context/ThemeContext';
 
 
+
 function App() {
   const authContext = useContext(AuthContext);
 

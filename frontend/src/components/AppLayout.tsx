@@ -28,7 +28,7 @@ import {
   SunOutlined,
   MoonOutlined,
 } from '@ant-design/icons';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import HeaderChatDropdown from './HeaderChatDropdown';
 import NotificationDropdown from '../pages/NotificationDropdown';
@@ -40,15 +40,15 @@ const { Header, Content, Sider } = Layout;
 const { Title } = Typography;
 
 const menuItems = [
-  { key: '1', icon: <HomeOutlined />, label: 'Главная', path: '/' },
-  { key: '2', icon: <AppstoreOutlined />, label: 'Объекты недвижимости', path: '/properties' },
-  { key: '3', icon: <TeamOutlined />, label: 'Мои клиенты', path: '/clients' },
-  { key: '4', icon: <FolderOpenOutlined />, label: 'Подбор', path: '/selection' },
-  { key: '5', icon: <MessageOutlined />, label: 'Чаты', path: '/chats' },
-  { key: '6', icon: <NotificationOutlined />, label: 'Уведомления', path: '/notifications' },
-  { key: '7', icon: <ReadOutlined />, label: 'Обучение', path: '/education' },
-  { key: '8', icon: <UserOutlined />, label: 'Мой профиль', path: '/profile' },
-  { key: '9', icon: <SettingOutlined />, label: 'Настройки', path: '/settings' },
+  { key: '/', icon: <HomeOutlined />, label: 'Главная', path: '/' },
+  { key: '/properties', icon: <AppstoreOutlined />, label: 'Объекты недвижимости', path: '/properties' },
+  { key: '/clients', icon: <TeamOutlined />, label: 'Мои клиенты', path: '/clients' },
+  { key: '/selection', icon: <FolderOpenOutlined />, label: 'Подбор', path: '/selection' },
+  { key: '/chats', icon: <MessageOutlined />, label: 'Чаты', path: '/chats' },
+  { key: '/notifications', icon: <NotificationOutlined />, label: 'Уведомления', path: '/notifications' },
+  { key: '/education', icon: <ReadOutlined />, label: 'Обучение', path: '/education' },
+  { key: '/profile', icon: <UserOutlined />, label: 'Мой профиль', path: '/profile' },
+  { key: '/settings', icon: <SettingOutlined />, label: 'Настройки', path: '/settings' },
 ];
 
 const searchData = [
@@ -98,6 +98,7 @@ const AppLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const authContext = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
   const [profilePopoverOpen, setProfilePopoverOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const [searchValue, setSearchValue] = useState('');
@@ -179,22 +180,22 @@ const AppLayout: React.FC = () => {
         collapsible 
         collapsed={collapsed} 
         onCollapse={setCollapsed}
-        style={{ display: 'flex', flexDirection: 'column', width: 260, minWidth: 260, maxWidth: 260 }}
-        width={260}
+        style={{ display: 'flex', flexDirection: 'column', width: 240, minWidth: 240, maxWidth: 240 }}
+        width={240}
       >
         <div style={{ height: '32px', margin: '16px', color: 'white', textAlign: 'center' }}>
           <Title level={4} style={{ color: 'white' }}>РиэлтиПро</Title>
         </div>
         <Menu 
           theme="dark" 
-          defaultSelectedKeys={['1']} 
+          selectedKeys={[location.pathname]}
           mode="inline"
           items={menuItems.map((item) => ({
             ...item,
-            label: <span data-tour={`sidebar-${item.key}`}>{item.label}</span>,
+            label: <span data-tour={`sidebar-${item.key}`} style={{ fontSize: 18, fontWeight: 500 }}>{item.label}</span>,
             style: { fontSize: 18, fontWeight: 500 }
           }))}
-          onClick={handleMenuClick}
+          onClick={({ key }) => navigate(key)}
           style={{ flex: 1, borderRight: 0 }}
         />
         <Menu 
@@ -202,8 +203,9 @@ const AppLayout: React.FC = () => {
           mode="inline"
           onClick={handleLogout}
           items={[
-            { key: '10', icon: <LogoutOutlined />, label: <span data-tour="sidebar-logout">Выйти</span>, style: { fontSize: 18, fontWeight: 500 } }
+            { key: 'logout', icon: <LogoutOutlined />, label: <span data-tour="sidebar-logout" style={{ fontSize: 18, fontWeight: 500 }}>Выйти</span> }
           ]}
+          style={{ marginTop: 'auto' }}
         />
       </Sider>
       <Layout className="site-layout">
