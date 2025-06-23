@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Tabs, Input, Button, Avatar, Row, Col, Typography, Card } from 'antd';
+import { Tabs, Input, Button, Avatar, Row, Col, Typography } from 'antd';
 import { UserOutlined, HomeOutlined, FileTextOutlined, CreditCardOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 
-const userMock = {
+export const userMock = {
   firstName: 'Иван',
   lastName: 'Иванов',
   phone: '+7 (999) 123-45-67',
@@ -12,7 +12,7 @@ const userMock = {
   about: 'Риэлтор с 5-летним опытом работы. Специализируюсь на продаже жилой недвижимости в центральном районе.',
 };
 
-const agencyMock = {
+export const agencyMock = {
   name: 'Лидер Недвижимость',
   address: 'г. Москва, ул. Тверская, 10',
   phone: '+7 (495) 123-45-67',
@@ -48,7 +48,7 @@ const tabItems = [
     key: 'profile',
     label: <span><UserOutlined /> Мой профиль</span>,
     children: (
-      <Card style={{ margin: '0 auto', marginTop: 24, boxShadow: '0 4px 24px #e6eaf1', borderRadius: 20, background: '#fff', width: '100%', maxWidth: 1200 }}>
+      <div style={{ width: '100%', marginTop: 24 }}>
         <Title level={4}>Личная информация</Title>
         <Text type="secondary">Управляйте своими личными данными и настройками аккаунта</Text>
         <Row gutter={24} style={{ marginTop: 24 }}>
@@ -73,14 +73,14 @@ const tabItems = [
           </Col>
         </Row>
         <Button type="primary" style={{ marginTop: 24 }}>Редактировать</Button>
-      </Card>
+      </div>
     ),
   },
   {
     key: 'agency',
     label: <span><HomeOutlined /> Агентство</span>,
     children: (
-      <Card style={{ margin: '0 auto', marginTop: 24, boxShadow: '0 4px 24px #e6eaf1', borderRadius: 20, background: '#fff', width: '100%', maxWidth: 1200 }}>
+      <div style={{ width: '100%', marginTop: 24 }}>
         <Title level={4}>Информация об агентстве</Title>
         <Text type="secondary">Данные вашего агентства недвижимости</Text>
         <Row gutter={24} style={{ marginTop: 24 }}>
@@ -108,14 +108,14 @@ const tabItems = [
           </Col>
         </Row>
         <Button type="primary" style={{ marginTop: 24 }}>Редактировать</Button>
-      </Card>
+      </div>
     ),
   },
   {
     key: 'subscription',
     label: <span><CreditCardOutlined /> Подписка</span>,
     children: (
-      <Card style={{ margin: '0 auto', marginTop: 24, boxShadow: '0 4px 24px #e6eaf1', borderRadius: 20, background: '#fff', width: '100%', maxWidth: 1200 }}>
+      <div style={{ width: '100%', marginTop: 24 }}>
         <Title level={4}>Управление подпиской</Title>
         <Text type="secondary">Информация о вашей текущей подписке и доступных планах</Text>
         <div style={{ marginTop: 24, marginBottom: 16 }}>
@@ -129,7 +129,7 @@ const tabItems = [
         </ul>
         <div style={{ display: 'flex', gap: 24, marginTop: 24 }}>
           {subscriptionMock.plans.map((plan, i) => (
-            <Card key={i} style={{ border: plan.current ? '2px solid #296fff' : '1px solid #eee', minWidth: 220, flex: 1 }}>
+            <div key={i} style={{ border: plan.current ? '2px solid #296fff' : '1px solid #eee', minWidth: 220, flex: 1, padding: 16, borderRadius: 12 }}>
               <b>{plan.name}</b><br />
               <span style={{ color: '#888' }}>{plan.price}</span>
               <ul style={{ marginTop: 8 }}>
@@ -138,21 +138,21 @@ const tabItems = [
                 ))}
               </ul>
               {plan.current ? <Button type="primary" disabled style={{ marginTop: 8 }}>Текущий план</Button> : <Button style={{ marginTop: 8 }}>Выбрать план</Button>}
-            </Card>
+            </div>
           ))}
         </div>
-      </Card>
+      </div>
     ),
   },
   {
     key: 'offer',
     label: <span><FileTextOutlined /> Оферта</span>,
     children: (
-      <Card style={{ margin: '0 auto', marginTop: 24, boxShadow: '0 4px 24px #e6eaf1', borderRadius: 20, background: '#fff', width: '100%', maxWidth: 1200 }}>
+      <div style={{ width: '100%', marginTop: 24 }}>
         <Title level={4}>Договор оферты</Title>
         <Text type="secondary">Ознакомьтесь с условиями использования платформы</Text>
         <pre style={{ marginTop: 24, whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 16 }}>{offerText}</pre>
-      </Card>
+      </div>
     ),
   },
 ];
@@ -160,7 +160,7 @@ const tabItems = [
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('profile');
   return (
-    <div style={{ width: '100%', padding: '32px 40px 0 40px', background: 'var(--profile-bg, #f7f9fb)', minHeight: '100vh' }}>
+    <div style={{ width: '100%', minHeight: '100vh' }}>
       <h1 style={{ marginBottom: 24 }}>Мой профиль</h1>
       <Tabs
         activeKey={activeTab}
