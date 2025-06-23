@@ -10,6 +10,7 @@ import {
   Row,
   Col,
   Popover,
+  Switch,
 } from 'antd';
 import {
   HomeOutlined,
@@ -24,10 +25,13 @@ import {
   LogoutOutlined,
   SearchOutlined,
   SunOutlined,
+  MoonOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import HeaderChatDropdown from './HeaderChatDropdown';
+import NotificationDropdown from '../pages/NotificationDropdown';
+import { useTheme } from '../context/ThemeContext';
 
 const { Header, Content, Sider } = Layout;
 const { Title } = Typography;
@@ -48,6 +52,8 @@ const AppLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const authContext = useContext(AuthContext);
   const navigate = useNavigate();
+  const [profilePopoverOpen, setProfilePopoverOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   const handleLogout = () => {
     authContext?.setAuthData(null, null);
@@ -59,6 +65,32 @@ const AppLayout: React.FC = () => {
       navigate(menuItem.path);
     }
   };
+
+  const handleProfileMenu = (key: string) => {
+    setProfilePopoverOpen(false);
+    if (key === 'profile') navigate('/profile');
+    if (key === 'settings') navigate('/settings');
+    if (key === 'logout') handleLogout();
+    // Темная тема — заглушка
+  };
+
+  const profilePopoverContent = (
+    <div style={{ minWidth: 180 }}>
+      <div style={{ padding: '8px 0', cursor: 'pointer' }} onClick={() => handleProfileMenu('profile')}>
+        <UserOutlined style={{ marginRight: 8 }} /> Мой профиль
+      </div>
+      <div style={{ padding: '8px 0', cursor: 'pointer' }} onClick={() => handleProfileMenu('settings')}>
+        <span style={{ marginRight: 8 }}><span className="anticon anticon-setting" /></span> Настройки
+      </div>
+      <div style={{ padding: '8px 0', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+        <span style={{ marginRight: 8 }}><span className="anticon anticon-moon" /></span> Темная тема
+        <Switch size="small" style={{ marginLeft: 'auto' }} disabled />
+      </div>
+      <div style={{ padding: '8px 0', cursor: 'pointer', color: '#f44336' }} onClick={() => handleProfileMenu('logout')}>
+        <span style={{ marginRight: 8 }}><span className="anticon anticon-logout" /></span> Выйти
+      </div>
+    </div>
+  );
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -101,11 +133,22 @@ const AppLayout: React.FC = () => {
                       <MessageOutlined style={{ fontSize: '20px', cursor: 'pointer' }} />
                     </Badge>
                 </Popover>
-                <Badge count={3}>
-                  <NotificationOutlined style={{ fontSize: '20px' }} />
-                </Badge>
-                <SunOutlined style={{ fontSize: '20px' }} />
-                <Avatar icon={<UserOutlined />} />
+                <NotificationDropdown />
+                <SettingOutlined style={{ fontSize: '20px', cursor: 'pointer' }} onClick={() => navigate('/settings')} />
+                {theme === 'light' ? (
+                  <SunOutlined style={{ fontSize: '20px', cursor: 'pointer' }} onClick={toggleTheme} />
+                ) : (
+                  <MoonOutlined style={{ fontSize: '20px', cursor: 'pointer' }} onClick={toggleTheme} />
+                )}
+                <Popover
+                  content={profilePopoverContent}
+                  trigger="click"
+                  open={profilePopoverOpen}
+                  onOpenChange={setProfilePopoverOpen}
+                  placement="bottomRight"
+                >
+                  <Avatar icon={<UserOutlined />} style={{ cursor: 'pointer' }} />
+                </Popover>
               </Space>
             </Col>
           </Row>
