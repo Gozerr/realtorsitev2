@@ -9,6 +9,7 @@ import {
   Space,
   Row,
   Col,
+  Popover,
 } from 'antd';
 import {
   HomeOutlined,
@@ -26,6 +27,7 @@ import {
 } from '@ant-design/icons';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import HeaderChatDropdown from './HeaderChatDropdown';
 
 const { Header, Content, Sider } = Layout;
 const { Title } = Typography;
@@ -48,7 +50,7 @@ const AppLayout: React.FC = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    authContext?.setToken(null);
+    authContext?.setAuthData(null, null);
   };
 
   const handleMenuClick = (item: { key: string }) => {
@@ -60,7 +62,12 @@ const AppLayout: React.FC = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
+      <Sider 
+        collapsible 
+        collapsed={collapsed} 
+        onCollapse={setCollapsed}
+        style={{ display: 'flex', flexDirection: 'column' }}
+      >
         <div style={{ height: '32px', margin: '16px', color: 'white', textAlign: 'center' }}>
           <Title level={4} style={{ color: 'white' }}>РиэлтиПро</Title>
         </div>
@@ -70,17 +77,16 @@ const AppLayout: React.FC = () => {
           mode="inline"
           items={menuItems}
           onClick={handleMenuClick}
+          style={{ flex: 1, borderRight: 0 }}
         />
-        <div style={{ position: 'absolute', bottom: '20px', width: '100%', textAlign: 'center' }}>
-            <Menu 
-              theme="dark" 
-              mode="inline"
-              onClick={handleLogout}
-              items={[
-                { key: '10', icon: <LogoutOutlined />, label: 'Выйти' }
-              ]}
-            />
-        </div>
+        <Menu 
+          theme="dark" 
+          mode="inline"
+          onClick={handleLogout}
+          items={[
+            { key: '10', icon: <LogoutOutlined />, label: 'Выйти' }
+          ]}
+        />
       </Sider>
       <Layout className="site-layout">
         <Header className="site-layout-background" style={{ padding: '0 16px', background: '#fff' }}>
@@ -90,9 +96,11 @@ const AppLayout: React.FC = () => {
             </Col>
             <Col>
               <Space size="large">
-                <Badge count={2}>
-                  <MessageOutlined style={{ fontSize: '20px' }} />
-                </Badge>
+                <Popover content={<HeaderChatDropdown />} trigger="click" placement="bottomRight">
+                    <Badge count={2}>
+                      <MessageOutlined style={{ fontSize: '20px', cursor: 'pointer' }} />
+                    </Badge>
+                </Popover>
                 <Badge count={3}>
                   <NotificationOutlined style={{ fontSize: '20px' }} />
                 </Badge>

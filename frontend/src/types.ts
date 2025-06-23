@@ -68,3 +68,17 @@ export interface CreateClientData {
   phone: string;
   status?: ClientStatus;
 }
+
+export interface Message {
+  id: string;
+  content: string;
+  createdAt: string;
+  author: User;
+  conversation: Conversation;
+}
+
+export interface Conversation {
+  id:string;
+  participants: User[];
+  messages: Message[];
+}

@@ -15,7 +15,7 @@ const LoginPage = () => {
     setError('');
     try {
       const data = await login({ email: values.email, password: values.password });
-      authContext?.setToken(data.access_token);
+      authContext?.setAuthData(data.access_token, data.user);
     } catch (err) {
       setError('Failed to login. Please check your credentials.');
       console.error(err);
