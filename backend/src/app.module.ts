@@ -11,13 +11,16 @@ import { PropertiesModule } from './properties/properties.module';
 import { Property } from './properties/property.entity';
 import { ClientsModule } from './clients/clients.module';
 import { Client } from './clients/client.entity';
+import { ChatModule } from './chat/chat.module';
+import { Conversation } from './chat/conversation.entity';
+import { Message } from './chat/message.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot({
       type: 'sqlite',
       database: 'db.sqlite',
-      entities: [User, Agency, Property, Client],
+      entities: [User, Agency, Property, Client, Conversation, Message],
       synchronize: true,
     }),
     UsersModule,
@@ -25,6 +28,7 @@ import { Client } from './clients/client.entity';
     AgenciesModule,
     PropertiesModule,
     ClientsModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],
