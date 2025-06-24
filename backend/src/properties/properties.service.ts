@@ -32,6 +32,13 @@ export class PropertiesService {
     });
   }
 
+  findOne(id: number): Promise<Property | null> {
+    return this.propertiesRepository.findOne({
+      where: { id },
+      relations: ['agent'],
+    });
+  }
+
   findAllForAgent(agentId: number): Promise<Property[]> {
     return this.propertiesRepository.find({
       where: { agent: { id: agentId } },
@@ -44,5 +51,17 @@ export class PropertiesService {
       agent: { id: agentId },
     });
     return this.propertiesRepository.save(newProperty);
+  }
+
+  // Новый метод для получения всех фото всех объектов
+  async getAllPhotos(): Promise<string[]> {
+    const properties = await this.propertiesRepository.find();
+    // Собираем все фото в один массив (убираем пустые и дубликаты)
+    const allPhotos = properties
+      .flatMap(p => p.photos || [])
+      .filter(url => !!url);
+    // Если хотите убрать дубликаты:
+    // return Array.from(new Set(allPhotos));
+    return allPhotos;
   }
 }

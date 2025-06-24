@@ -5,15 +5,22 @@ import { UsersService } from './users/users.service';
 import { UserRole } from './users/user.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Agency } from './agencies/agency.entity';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   
   app.enableCors({
     origin: 'http://localhost:3001', // Указываем адрес нашего фронтенда
   });
 
   app.useGlobalPipes(new ValidationPipe());
+
+  // Настройка статических файлов для раздачи загруженных изображений
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+    prefix: '/uploads/',
+  });
 
   // --- Получение или создание агентства ---
   const agenciesRepository = app.get(getRepositoryToken(Agency));
@@ -33,6 +40,7 @@ if (!agency) {
       password: 'password',
       firstName: 'Super',
       lastName: 'User',
+      photo: 'https://olimp.vtcrm.ru/uploads/User_photos/phpXxFFcI.jpeg', // Фото по умолчанию
       role: UserRole.DIRECTOR,
       agencyId: agency.id
     });

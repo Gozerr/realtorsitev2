@@ -11,6 +11,10 @@ export class AgenciesService {
     private agenciesRepository: Repository<Agency>,
   ) {}
 
+  findAll(): Promise<Agency[]> {
+    return this.agenciesRepository.find();
+  }
+
   create(createAgencyDto: CreateAgencyDto): Promise<Agency> {
     const newAgency = this.agenciesRepository.create(createAgencyDto);
     return this.agenciesRepository.save(newAgency);

@@ -21,6 +21,56 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
+# Real Estate CRM Backend
+
+NestJS backend для CRM системы недвижимости с поддержкой загрузки аватаров.
+
+## Установка и запуск
+
+```bash
+npm install
+npm run start:dev
+```
+
+## Функциональность
+
+### Загрузка аватаров
+- Поддерживаются форматы: JPG, PNG, GIF, WebP
+- Максимальный размер файла: 2MB
+- Файлы сохраняются в папку `uploads/`
+- Старые аватары автоматически удаляются при обновлении
+- Доступ к файлам: `http://localhost:3000/uploads/filename`
+
+### API Endpoints
+
+#### Загрузка аватара
+```
+POST /upload/avatar
+Content-Type: multipart/form-data
+Body: avatar (file)
+```
+
+#### Обновление профиля
+```
+PUT /users/profile
+Authorization: Bearer <token>
+Body: { firstName, lastName, photo }
+```
+
+## Структура проекта
+
+- `uploads/` - папка для загруженных файлов
+- `src/app.controller.ts` - контроллер для загрузки файлов
+- `src/users/` - модуль пользователей с поддержкой аватаров
+- `src/main.ts` - настройка статических файлов
+
+## Безопасность
+
+- Валидация типов файлов (только изображения)
+- Ограничение размера файлов
+- Уникальные имена файлов для предотвращения конфликтов
+- Автоматическая очистка старых файлов
+
 ## Description
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.

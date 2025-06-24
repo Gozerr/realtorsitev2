@@ -46,9 +46,15 @@ export class Property {
   @Column('simple-array', { nullable: true })
   photos: string[];
 
-  @ManyToOne(() => User, user => user.properties)
-  agent: User;
-
+  @ManyToOne(() => User, user => user.properties, { nullable: true })
+  agent: User | null;
+  
   @CreateDateColumn()
   createdAt: Date;
+
+  @Column({ type: 'float', nullable: true })
+  lat: number;
+
+  @Column({ type: 'float', nullable: true })
+  lng: number;
 }
