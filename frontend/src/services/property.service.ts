@@ -1,5 +1,10 @@
 import { Property, CreatePropertyData } from '../types';
 import api from './api';
+import axios from 'axios';
+
+export async function updatePropertyCoords(id: string | number, lat: number, lng: number) {
+  return axios.patch(`/api/properties/${id}/coords`, { lat, lng });
+}
 
 export const getStatistics = async (): Promise<{ total: number; forSale: number; exclusives: number }> => {
   const response = await api.get('/properties/statistics');
