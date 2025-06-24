@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, Carousel, Tag, Select, Button, Tooltip } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { Property } from '../types'; // Укажите правильный путь
+import { Property } from '../types';
 import { MessageOutlined, PlusOutlined } from '@ant-design/icons';
 
 const statusOptions = [
@@ -14,7 +14,7 @@ const statusOptions = [
 type PropertyCardProps = {
   property: Property;
   isAgent?: boolean; // если true — показывать Select для смены статуса
-  onStatusChange?: (id: string, status: string) => void;
+  onStatusChange?: (id: number, status: string) => void;
 };
 
 const PropertyCard: React.FC<PropertyCardProps> = ({ property, isAgent, onStatusChange }) => {
@@ -26,24 +26,40 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, isAgent, onStatus
   return (
     <Card
       title={property.title}
-      style={{ width: '100%', marginBottom: 16, position: 'relative' }}
+      style={{ 
+        width: '100%', 
+        marginBottom: 16, 
+        position: 'relative',
+        background: 'var(--card-background)',
+        border: '1px solid var(--border-color)',
+        boxShadow: '0 2px 8px var(--shadow-light)'
+      }}
       cover={
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', padding: 12 }}>
           {images.length > 0 ? (
-            <Carousel autoplay style={{ width: '100%', height: 220 }}>
+            <Carousel autoplay style={{ width: '100%', height: 170 }}>
               {images.map((url: string, i: number) => (
                 <div key={i}>
                   <img
                     src={url}
                     alt={property.title}
-                    style={{ width: '100%', height: 220, objectFit: 'cover', borderRadius: 8 }}
+                    style={{ width: '100%', height: 170, objectFit: 'cover', borderRadius: 8 }}
                     onError={e => (e.currentTarget.style.display = 'none')}
                   />
                 </div>
               ))}
             </Carousel>
           ) : (
-            <div style={{ width: '100%', height: 220, background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ 
+              width: '100%', 
+              height: 170, 
+              background: 'var(--border-light)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              borderRadius: 8,
+              color: 'var(--text-muted)'
+            }}>
               Нет фото
             </div>
           )}
@@ -67,10 +83,10 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, isAgent, onStatus
           </Tag>
         )}
       </div>
-      <p><b>Адрес:</b> {property.address}</p>
-      <p><b>Цена:</b> {property.price} ₽</p>
-      <p><b>Площадь:</b> {property.area} м²</p>
-      <p><b>Описание:</b> {property.description}</p>
+      <p style={{ color: 'var(--text-primary)' }}><b>Адрес:</b> {property.address}</p>
+      <p style={{ color: 'var(--text-primary)' }}><b>Цена:</b> {property.price} ₽</p>
+      <p style={{ color: 'var(--text-primary)' }}><b>Площадь:</b> {property.area} м²</p>
+      <p style={{ color: 'var(--text-secondary)' }}><b>Описание:</b> {property.description}</p>
       {/* ...другие поля... */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16 }}>
         <Button type="default" onClick={() => navigate(`/properties/${property.id}`)}>

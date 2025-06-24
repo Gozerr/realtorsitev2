@@ -3,6 +3,10 @@
 export interface User {
   id: number;
   email: string;
+  firstName: string;
+  lastName: string;
+  photo?: string;
+  role: 'agent' | 'director';
   agencyId?: number;
 }
 
@@ -23,17 +27,33 @@ export enum PropertyStatus {
 }
 
 export interface Property {
-  id: string;
+  id: number;
   title: string;
   address: string;
   price: number;
-  status: string; // например: "В продаже", "Сдано", "Эксклюзив"
-  images: string[];
-  agency: string;
-  datePublished: string;
+  status: PropertyStatus;
   description?: string;
-  type?: string; // например: "Квартира", "Дом", "Коммерция"
-  area?: number; // площадь, м²
+  area?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  isExclusive?: boolean;
+  photos?: string[];
+  agent?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+    photo?: string;
+  };
+  createdAt?: string;
+  lat?: number;
+  lng?: number;
+  // Дополнительные поля для совместимости
+  images?: string[];
+  agency?: string;
+  datePublished?: string;
+  type?: string;
   rooms?: number;
   floor?: number;
   totalFloors?: number;
@@ -46,12 +66,17 @@ export interface CreatePropertyData {
   title: string;
   address: string;
   price: number;
-  status: string;
-  images: string[];
-  agency: string;
   description?: string;
-  type?: string;
   area?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  isExclusive?: boolean;
+  photos?: string[];
+  // Дополнительные поля для совместимости
+  status?: string;
+  images?: string[];
+  agency?: string;
+  type?: string;
   rooms?: number;
   floor?: number;
   totalFloors?: number;

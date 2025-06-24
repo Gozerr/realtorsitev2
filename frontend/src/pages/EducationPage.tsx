@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, Card, Button, Row, Col, Typography, Tag, Collapse } from 'antd';
-import { CalendarOutlined, BookOutlined, QuestionCircleOutlined, ClockCircleOutlined, EnvironmentOutlined, TeamOutlined } from '@ant-design/icons';
+import { CalendarOutlined, BookOutlined, QuestionCircleOutlined, ClockCircleOutlined, EnvironmentOutlined, TeamOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import Joyride, { CallBackProps, STATUS, Step } from 'react-joyride';
+import { useTutorial } from '../context/TutorialContext';
 import realEvents from '../data/real_events.json';
 import realCourses from '../data/real_courses.json';
 
@@ -59,6 +60,7 @@ const user = { name: 'Иван Иванов', isFamousRealtor: true };
 export default function EducationPage() {
   const [tab, setTab] = useState('events');
   const [joyrideRun, setJoyrideRun] = useState(false);
+  const { startTutorial } = useTutorial();
 
   // Автоматический запуск walkthrough для новых пользователей
   useEffect(() => {
@@ -85,12 +87,31 @@ export default function EducationPage() {
   };
 
   const tip = (
-    <Card style={{ background: '#f5faff', border: '1px solid #b3e5fc', marginBottom: 16 }}>
-      <b>💡 Совет</b>
-      <div style={{ marginTop: 8 }}>
-        Вы можете запустить интерактивное обучение по работе с платформой, нажав на кнопку ниже. Система проведет вас по основным разделам и объяснит их функциональность.
+    <Card style={{ 
+      background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(102, 126, 234, 0.1) 100%)', 
+      border: '1px solid rgba(102, 126, 234, 0.2)', 
+      marginBottom: 16,
+      borderRadius: '12px'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+        <PlayCircleOutlined style={{ fontSize: '20px', color: 'var(--primary-color)' }} />
+        <b style={{ color: 'var(--text-primary)' }}>Интерактивное обучение</b>
       </div>
-      <Button type="primary" style={{ marginTop: 12 }} onClick={() => setJoyrideRun(true)}>
+      <div style={{ marginBottom: '16px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+        Пройдите интерактивное обучение по работе с платформой. Система проведет вас по основным разделам, 
+        подсветит важные элементы и объяснит их функциональность.
+      </div>
+      <Button 
+        type="primary" 
+        icon={<PlayCircleOutlined />}
+        onClick={startTutorial}
+        style={{ 
+          background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%)',
+          border: 'none',
+          fontWeight: '600',
+          height: '40px'
+        }}
+      >
         Запустить обучение
       </Button>
     </Card>

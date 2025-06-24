@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-import { Tabs, Input, Button, Avatar, Row, Col, Typography } from 'antd';
-import { UserOutlined, HomeOutlined, FileTextOutlined, CreditCardOutlined } from '@ant-design/icons';
+import React, { useState, useContext, useEffect } from 'react';
+import { Tabs, Input, Button, Avatar, Row, Col, Typography, Upload, message, Card, Select } from 'antd';
+import { UserOutlined, HomeOutlined, FileTextOutlined, CreditCardOutlined, UploadOutlined } from '@ant-design/icons';
+import { AuthContext } from '../context/AuthContext';
+import { updateProfile } from '../services/auth.service';
+import { uploadAvatar } from '../services/upload.service';
 
 const { Title, Text } = Typography;
 
@@ -165,13 +168,255 @@ const tabItems = [
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('profile');
+  const [uploading, setUploading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValues, setEditValues] = useState({ firstName: '', lastName: '', email: '', role: '' });
+  const authContext = useContext(AuthContext);
+  const user = authContext?.user;
+
+  useEffect(() => {
+    if (user) {
+      setEditValues({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        role: user.role || '',
+      });
+    }
+  }, [user]);
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!user) return false;
+    setUploading(true);
+    try {
+      const isLt2M = file.size / 1024 / 1024 < 2;
+      if (!isLt2M) {
+        message.error('Файл должен быть меньше 2MB!');
+        return false;
+      }
+      const isImage = file.type.startsWith('image/');
+      if (!isImage) {
+        message.error('Можно загружать только изображения!');
+        return false;
+      }
+      const photoUrl = await uploadAvatar(file);
+      const updatedUser = await updateProfile({ photo: photoUrl });
+      authContext?.setAuthData(authContext.token, updatedUser);
+      message.success('Аватар успешно обновлен!');
+    } catch (error) {
+      console.error('Upload error:', error);
+      message.error('Ошибка при обновлении аватара');
+    } finally {
+      setUploading(false);
+    }
+    return false;
+  };
+
+  const handleEdit = () => setIsEditing(true);
+  const handleCancel = () => {
+    if (user) {
+      setEditValues({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        role: user.role || '',
+      });
+    }
+    setIsEditing(false);
+  };
+  const handleChange = (field: string, value: string) => {
+    setEditValues(prev => ({ ...prev, [field]: value }));
+  };
+  const handleSave = async () => {
+    try {
+      const updatedUser = await updateProfile({
+        ...editValues,
+        role: editValues.role as 'agent' | 'director',
+      });
+      authContext?.setAuthData(authContext.token, updatedUser);
+      message.success('Профиль обновлен!');
+      setIsEditing(false);
+    } catch (error) {
+      message.error('Ошибка при обновлении профиля');
+    }
+  };
+
+  const dynamicTabItems = tabItems.map(item => {
+    if (item.key === 'profile') {
+      return {
+        ...item,
+        children: (
+          <div style={{ width: '100%', marginTop: 24 }}>
+            <Card
+              style={{
+                width: '100%',
+                maxWidth: '100%',
+                borderRadius: 24,
+                boxShadow: '0 4px 32px #e6eaf1',
+                background: 'linear-gradient(135deg, #f7faff 60%, #e3f0ff 100%)',
+                padding: 32,
+                border: 'none',
+                marginBottom: 32,
+              }}
+              bodyStyle={{ padding: 0 }}
+            >
+              <Title level={3} style={{ marginBottom: 8, fontWeight: 700, letterSpacing: 0.5 }}>
+                Личная информация
+              </Title>
+              <Text type="secondary" style={{ fontSize: 16 }}>
+                Ваши данные из системы
+              </Text>
+              <Row gutter={32} style={{ marginTop: 32, alignItems: 'center' }}>
+                <Col span={4} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <Avatar 
+                    size={140} 
+                    src={user?.photo} 
+                    icon={<UserOutlined />} 
+                    style={{ 
+                      boxShadow: '0 2px 12px #b3c6e0', 
+                      marginBottom: 12, 
+                      borderRadius: 20, 
+                      width: 140, 
+                      height: 140, 
+                      objectFit: 'cover', 
+                    }} 
+                    shape="square"
+                  />
+                  <Upload
+                    name="avatar"
+                    showUploadList={false}
+                    beforeUpload={handleAvatarUpload}
+                    accept="image/*"
+                  >
+                    <Button 
+                      icon={<UploadOutlined />} 
+                      size="middle" 
+                      style={{ marginTop: 4, fontWeight: 500 }}
+                      loading={uploading}
+                    >
+                      Загрузить фото
+                    </Button>
+                  </Upload>
+                </Col>
+                <Col span={20}>
+                  <Title level={4} style={{ margin: 0, fontWeight: 600, fontSize: 26 }}>
+                    {isEditing ? (
+                      <Input
+                        value={editValues.firstName}
+                        onChange={e => handleChange('firstName', e.target.value)}
+                        style={{ fontSize: 22, fontWeight: 600, width: 180, marginRight: 8 }}
+                        placeholder="Имя"
+                      />
+                    ) : user?.firstName}{' '}
+                    {isEditing ? (
+                      <Input
+                        value={editValues.lastName}
+                        onChange={e => handleChange('lastName', e.target.value)}
+                        style={{ fontSize: 22, fontWeight: 600, width: 180 }}
+                        placeholder="Фамилия"
+                      />
+                    ) : user?.lastName}
+                  </Title>
+                  <Text type="secondary" style={{ fontSize: 18, fontWeight: 500 }}>
+                    {isEditing ? (
+                      <Select
+                        value={editValues.role}
+                        onChange={value => handleChange('role', value)}
+                        style={{ fontSize: 16, width: 180, marginRight: 8 }}
+                        options={[
+                          { value: 'agent', label: 'Агент' },
+                          { value: 'director', label: 'Директор' },
+                        ]}
+                      />
+                    ) : user?.role === 'director' ? 'Директор' : 'Агент'}
+                  </Text>
+                  <Row gutter={16} style={{ marginTop: 20 }}>
+                    <Col span={12}>
+                      <Input
+                        value={isEditing ? editValues.email : user?.email || ''}
+                        onChange={e => handleChange('email', e.target.value)}
+                        disabled={!isEditing}
+                        addonBefore="Email"
+                        size="large"
+                        style={{ fontSize: 16 }}
+                      />
+                    </Col>
+                    <Col span={12}>
+                      {isEditing ? (
+                        <Select
+                          value={editValues.role}
+                          onChange={value => handleChange('role', value)}
+                          disabled={!isEditing}
+                          style={{ fontSize: 16, width: '100%' }}
+                          options={[
+                            { value: 'agent', label: 'Агент' },
+                            { value: 'director', label: 'Директор' },
+                          ]}
+                        />
+                      ) : (
+                        <Input
+                          value={user?.role === 'director' ? 'Директор' : 'Агент'}
+                          disabled
+                          addonBefore="Роль"
+                          size="large"
+                          style={{ fontSize: 16 }}
+                        />
+                      )}
+                    </Col>
+                  </Row>
+                  <Row gutter={16} style={{ marginTop: 16 }}>
+                    <Col span={12}>
+                      <Input
+                        value={isEditing ? editValues.firstName : user?.firstName || ''}
+                        onChange={e => handleChange('firstName', e.target.value)}
+                        disabled={!isEditing}
+                        addonBefore="Имя"
+                        size="large"
+                        style={{ fontSize: 16 }}
+                      />
+                    </Col>
+                    <Col span={12}>
+                      <Input
+                        value={isEditing ? editValues.lastName : user?.lastName || ''}
+                        onChange={e => handleChange('lastName', e.target.value)}
+                        disabled={!isEditing}
+                        addonBefore="Фамилия"
+                        size="large"
+                        style={{ fontSize: 16 }}
+                      />
+                    </Col>
+                  </Row>
+                </Col>
+              </Row>
+              {isEditing ? (
+                <div style={{ marginTop: 32, display: 'flex', gap: 16 }}>
+                  <Button type="primary" onClick={handleSave} style={{ width: 160, height: 48, fontSize: 18, borderRadius: 12, fontWeight: 600 }}>
+                    Сохранить
+                  </Button>
+                  <Button onClick={handleCancel} style={{ width: 120, height: 48, fontSize: 18, borderRadius: 12, fontWeight: 600 }}>
+                    Отмена
+                  </Button>
+                </div>
+              ) : (
+                <Button type="primary" onClick={handleEdit} style={{ marginTop: 32, width: 240, height: 48, fontSize: 18, borderRadius: 12, fontWeight: 600 }}>
+                  Редактировать
+                </Button>
+              )}
+            </Card>
+          </div>
+        ),
+      };
+    }
+    return item;
+  });
+
   return (
     <div style={{ width: '100%', minHeight: '100vh' }}>
       <h1 style={{ marginBottom: 24 }}>Мой профиль</h1>
       <Tabs
         activeKey={activeTab}
         onChange={setActiveTab}
-        items={tabItems}
+        items={dynamicTabItems.filter(Boolean)}
         style={{ background: 'transparent' }}
       />
     </div>

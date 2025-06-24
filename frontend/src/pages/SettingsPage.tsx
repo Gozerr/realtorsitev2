@@ -3,90 +3,101 @@ import { Tabs, Input, Button, Switch, Select, Card, Typography } from 'antd';
 
 const { Title, Text } = Typography;
 
+const cardStyle = {
+  width: '100%',
+  maxWidth: '100%',
+  borderRadius: 24,
+  boxShadow: '0 4px 32px #e6eaf1',
+  background: 'linear-gradient(135deg, #f7faff 60%, #e3f0ff 100%)',
+  padding: 32,
+  border: 'none',
+  marginBottom: 32,
+};
+
 const generalTab = (
-  <Card style={{ margin: '0 auto', marginTop: 24, boxShadow: '0 4px 24px #e6eaf1', borderRadius: 20, background: '#fff', width: '100%', maxWidth: 1200 }}>
-    <Title level={4}>Общие настройки</Title>
-    <Text type="secondary">Управляйте основными настройками вашего аккаунта</Text>
-    <div style={{ marginTop: 24 }}>
-      <div style={{ marginBottom: 12 }}>Язык интерфейса</div>
-      <Select defaultValue="Русский" style={{ width: 240, marginBottom: 16 }}>
+  <Card style={cardStyle} bodyStyle={{ padding: 0 }}>
+    <Title level={3} style={{ marginBottom: 8, fontWeight: 700, letterSpacing: 0.5 }}>Общие настройки</Title>
+    <Text type="secondary" style={{ fontSize: 16 }}>Управляйте основными настройками вашего аккаунта</Text>
+    <div style={{ marginTop: 32 }}>
+      <div style={{ marginBottom: 16, fontWeight: 500 }}>Язык интерфейса</div>
+      <Select defaultValue="Русский" style={{ width: 260, marginBottom: 20 }} size="large">
         <Select.Option value="Русский">Русский</Select.Option>
         <Select.Option value="English">English</Select.Option>
       </Select>
-      <div style={{ marginBottom: 12 }}>Часовой пояс</div>
-      <Select defaultValue="Москва (GMT+3)" style={{ width: 240, marginBottom: 16 }}>
+      <div style={{ marginBottom: 16, fontWeight: 500 }}>Часовой пояс</div>
+      <Select defaultValue="Москва (GMT+3)" style={{ width: 260, marginBottom: 20 }} size="large">
         <Select.Option value="Москва (GMT+3)">Москва (GMT+3)</Select.Option>
         <Select.Option value="Калининград (GMT+2)">Калининград (GMT+2)</Select.Option>
       </Select>
-      <div style={{ marginBottom: 12 }}>Формат даты</div>
-      <Input defaultValue="ДД.MM.ГГГГ" style={{ width: 240, marginBottom: 24 }} />
-      <Button type="primary">Сохранить изменения</Button>
+      <div style={{ marginBottom: 16, fontWeight: 500 }}>Формат даты</div>
+      <Input defaultValue="ДД.MM.ГГГГ" style={{ width: 260, marginBottom: 32 }} size="large" />
+      <Button type="primary" size="large" style={{ borderRadius: 12, fontWeight: 600 }}>Сохранить изменения</Button>
     </div>
   </Card>
 );
 
 const notificationsTab = (
-  <Card style={{ margin: '0 auto', marginTop: 24, boxShadow: '0 4px 24px #e6eaf1', borderRadius: 20, background: '#fff', width: '100%', maxWidth: 1200 }}>
-    <Title level={4}>Настройки уведомлений</Title>
-    <Text type="secondary">Настройте способы получения уведомлений</Text>
-    <div style={{ marginTop: 24 }}>
-      <div style={{ marginBottom: 12 }}>Уведомления <Switch defaultChecked style={{ marginLeft: 8 }} /></div>
-      <div style={{ marginBottom: 12 }}>Email уведомления <Switch defaultChecked style={{ marginLeft: 8 }} /></div>
-      <div style={{ marginBottom: 12 }}>SMS уведомления <Switch style={{ marginLeft: 8 }} /></div>
-      <div style={{ marginBottom: 12 }}>Email для уведомлений</div>
-      <Input defaultValue="your@email.com" style={{ width: 240, marginBottom: 16 }} />
-      <div style={{ marginBottom: 12 }}>Телефон для SMS</div>
-      <Input defaultValue="+7 (___) ___-__-__" style={{ width: 240, marginBottom: 24 }} />
-      <Button type="primary">Сохранить изменения</Button>
+  <Card style={cardStyle} bodyStyle={{ padding: 0 }}>
+    <Title level={3} style={{ marginBottom: 8, fontWeight: 700, letterSpacing: 0.5 }}>Настройки уведомлений</Title>
+    <Text type="secondary" style={{ fontSize: 16 }}>Настройте способы получения уведомлений</Text>
+    <div style={{ marginTop: 32 }}>
+      <div style={{ marginBottom: 16, fontWeight: 500 }}>Уведомления <Switch defaultChecked style={{ marginLeft: 8 }} /></div>
+      <div style={{ marginBottom: 16, fontWeight: 500 }}>Email уведомления <Switch defaultChecked style={{ marginLeft: 8 }} /></div>
+      <div style={{ marginBottom: 16, fontWeight: 500 }}>SMS уведомления <Switch style={{ marginLeft: 8 }} /></div>
+      <div style={{ marginBottom: 16, fontWeight: 500 }}>Email для уведомлений</div>
+      <Input defaultValue="your@email.com" style={{ width: 260, marginBottom: 20 }} size="large" />
+      <div style={{ marginBottom: 16, fontWeight: 500 }}>Телефон для SMS</div>
+      <Input defaultValue="+7 (___) ___-__-__" style={{ width: 260, marginBottom: 32 }} size="large" />
+      <Button type="primary" size="large" style={{ borderRadius: 12, fontWeight: 600 }}>Сохранить изменения</Button>
     </div>
   </Card>
 );
 
 const appearanceTab = (
-  <Card style={{ margin: '0 auto', marginTop: 24, boxShadow: '0 4px 24px #e6eaf1', borderRadius: 20, background: '#fff', width: '100%', maxWidth: 1200 }}>
-    <Title level={4}>Внешний вид</Title>
-    <Text type="secondary">Настройте внешний вид приложения</Text>
-    <div style={{ marginTop: 24 }}>
-      <div style={{ marginBottom: 12 }}>Темная тема <Switch style={{ marginLeft: 8 }} /></div>
-      <div style={{ marginBottom: 12 }}>Размер шрифта</div>
-      <Select defaultValue="Средний" style={{ width: 240, marginBottom: 16 }}>
+  <Card style={cardStyle} bodyStyle={{ padding: 0 }}>
+    <Title level={3} style={{ marginBottom: 8, fontWeight: 700, letterSpacing: 0.5 }}>Внешний вид</Title>
+    <Text type="secondary" style={{ fontSize: 16 }}>Настройте внешний вид приложения</Text>
+    <div style={{ marginTop: 32 }}>
+      <div style={{ marginBottom: 16, fontWeight: 500 }}>Темная тема <Switch style={{ marginLeft: 8 }} /></div>
+      <div style={{ marginBottom: 16, fontWeight: 500 }}>Размер шрифта</div>
+      <Select defaultValue="Средний" style={{ width: 260, marginBottom: 20 }} size="large">
         <Select.Option value="Мелкий">Мелкий</Select.Option>
         <Select.Option value="Средний">Средний</Select.Option>
         <Select.Option value="Крупный">Крупный</Select.Option>
       </Select>
-      <div style={{ marginBottom: 12, marginTop: 16 }}>Предпросмотр</div>
+      <div style={{ marginBottom: 16, marginTop: 16, fontWeight: 500 }}>Предпросмотр</div>
       <div style={{ color: '#888' }}>Текст мелкого размера</div>
       <div>Текст среднего размера</div>
       <div style={{ fontSize: 20, fontWeight: 600 }}>Текст крупного размера</div>
       <div style={{ fontWeight: 700, fontSize: 22, marginTop: 8 }}>Заголовок</div>
-      <Button type="primary" style={{ marginTop: 24 }}>Сохранить изменения</Button>
+      <Button type="primary" size="large" style={{ marginTop: 24, borderRadius: 12, fontWeight: 600 }}>Сохранить изменения</Button>
     </div>
   </Card>
 );
 
 const apiTab = (
-  <Card style={{ margin: '0 auto', marginTop: 24, boxShadow: '0 4px 24px #e6eaf1', borderRadius: 20, background: '#fff', width: '100%', maxWidth: 1200 }}>
-    <Title level={4}>API и интеграции</Title>
-    <Text type="secondary">Управляйте API ключами и интеграциями с другими сервисами</Text>
-    <div style={{ marginTop: 24 }}>
-      <div style={{ marginBottom: 12 }}>API ключ</div>
-      <Input.Password defaultValue="1234567890abcdef" style={{ width: 300, marginBottom: 16 }} />
-      <Button style={{ marginLeft: 8, marginRight: 8 }}>Показать</Button>
-      <Button>Обновить</Button>
-      <div style={{ marginTop: 24, marginBottom: 12 }}>Интеграции с CRM-системами</div>
-      <Card style={{ marginBottom: 8 }}>
-        <b>Bitrix24</b><br />Синхронизация клиентов и сделок с Bitrix24 <Button style={{ float: 'right' }}>Подключить</Button>
+  <Card style={cardStyle} bodyStyle={{ padding: 0 }}>
+    <Title level={3} style={{ marginBottom: 8, fontWeight: 700, letterSpacing: 0.5 }}>API и интеграции</Title>
+    <Text type="secondary" style={{ fontSize: 16 }}>Управляйте API ключами и интеграциями с другими сервисами</Text>
+    <div style={{ marginTop: 32 }}>
+      <div style={{ marginBottom: 16, fontWeight: 500 }}>API ключ</div>
+      <Input.Password defaultValue="1234567890abcdef" style={{ width: 320, marginBottom: 20 }} size="large" />
+      <Button style={{ marginLeft: 8, marginRight: 8, borderRadius: 8 }}>Показать</Button>
+      <Button style={{ borderRadius: 8 }}>Обновить</Button>
+      <div style={{ marginTop: 32, marginBottom: 16, fontWeight: 500 }}>Интеграции с CRM-системами</div>
+      <Card style={{ marginBottom: 12, borderRadius: 16, background: '#f7faff', border: 'none', boxShadow: '0 2px 12px #e6eaf1' }}>
+        <b>Bitrix24</b><br />Синхронизация клиентов и сделок с Bitrix24 <Button style={{ float: 'right', borderRadius: 8 }}>Подключить</Button>
       </Card>
-      <Card style={{ marginBottom: 8 }}>
-        <b>amoCRM</b><br />Интеграция с amoCRM для управления сделками <Button style={{ float: 'right' }}>Подключить</Button>
+      <Card style={{ marginBottom: 12, borderRadius: 16, background: '#f7faff', border: 'none', boxShadow: '0 2px 12px #e6eaf1' }}>
+        <b>amoCRM</b><br />Интеграция с amoCRM для управления сделками <Button style={{ float: 'right', borderRadius: 8 }}>Подключить</Button>
       </Card>
-      <Card style={{ marginBottom: 8 }}>
-        <b>Мегаплан</b><br />Синхронизация задач и клиентов с Мегапланом <Button style={{ float: 'right' }}>Подключить</Button>
+      <Card style={{ marginBottom: 12, borderRadius: 16, background: '#f7faff', border: 'none', boxShadow: '0 2px 12px #e6eaf1' }}>
+        <b>Мегаплан</b><br />Синхронизация задач и клиентов с Мегапланом <Button style={{ float: 'right', borderRadius: 8 }}>Подключить</Button>
       </Card>
-      <Card style={{ marginBottom: 8 }}>
-        <b>Salesforce</b><br />Интеграция с Salesforce CRM <Button style={{ float: 'right' }}>Подключить</Button>
+      <Card style={{ marginBottom: 12, borderRadius: 16, background: '#f7faff', border: 'none', boxShadow: '0 2px 12px #e6eaf1' }}>
+        <b>Salesforce</b><br />Интеграция с Salesforce CRM <Button style={{ float: 'right', borderRadius: 8 }}>Подключить</Button>
       </Card>
-      <Button type="primary" style={{ marginTop: 24 }}>Сохранить изменения</Button>
+      <Button type="primary" size="large" style={{ marginTop: 32, borderRadius: 12, fontWeight: 600 }}>Сохранить изменения</Button>
     </div>
   </Card>
 );
@@ -101,14 +112,27 @@ const tabItems = [
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('general');
   return (
-    <div style={{ width: '100%', padding: '32px 40px 0 40px', background: 'var(--settings-bg, #f7f9fb)', minHeight: '100vh' }}>
-      <h1 style={{ marginBottom: 24 }}>Настройки</h1>
-      <Tabs
-        activeKey={activeTab}
-        onChange={setActiveTab}
-        items={tabItems}
-        style={{ background: 'transparent' }}
-      />
+    <div style={{
+      width: '100%',
+      minHeight: '100vh',
+      padding: '0',
+      background: '#f7f9fb',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'stretch',
+    }}>
+      <h1 style={{ margin: '0 0 24px 0', textAlign: 'left', fontWeight: 400, fontSize: 32, letterSpacing: 0.5, color: '#222', textShadow: 'none', paddingLeft: 40 }}>
+        Настройки
+      </h1>
+      <div style={{ width: '100%', maxWidth: 1400, margin: '0 auto', flex: 1 }}>
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={tabItems}
+          style={{ background: 'transparent', width: '100%' }}
+          tabBarStyle={{ fontSize: 22, fontWeight: 700, marginBottom: 32, paddingLeft: 24 }}
+        />
+      </div>
     </div>
   );
 } 

@@ -106,7 +106,7 @@ export default function NotificationDropdown() {
       placement="bottomRight"
     >
       <Badge count={unreadCount}>
-        <BellOutlined style={{ fontSize: 22, cursor: 'pointer' }} />
+        <BellOutlined style={{ fontSize: 22, cursor: 'pointer', transition: 'color 0.2s' }} />
       </Badge>
     </Popover>
   );

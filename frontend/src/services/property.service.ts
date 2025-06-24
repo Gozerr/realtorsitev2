@@ -25,6 +25,11 @@ export const getRecentProperties = async (): Promise<Property[]> => {
   return response.data;
 };
 
+export const getPropertyById = async (id: string): Promise<Property> => {
+  const response = await api.get(`/properties/${id}`);
+  return response.data;
+};
+
 export const createProperty = async (data: CreatePropertyData, token: string): Promise<Property> => {
   const response = await api.post('/properties', data, {
     headers: {

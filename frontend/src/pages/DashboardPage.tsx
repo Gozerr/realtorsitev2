@@ -4,8 +4,8 @@ import { getRecentProperties, createProperty, getStatistics } from '../services/
 import { Property, CreatePropertyData } from '../types';
 import CreatePropertyForm from '../components/CreatePropertyForm';
 import PropertyCard from '../components/PropertyCard';
-import { Button, Modal, Spin, Alert, Row, Col, Card, Statistic, Typography } from 'antd';
-import { HomeOutlined, CheckSquareOutlined, StarOutlined } from '@ant-design/icons';
+import { Button, Modal, Spin, Alert, Row, Col, Card, Statistic, Typography, Divider } from 'antd';
+import { HomeOutlined, CheckSquareOutlined, StarOutlined, PlusOutlined, FireOutlined } from '@ant-design/icons';
 
 const { Title } = Typography;
 
@@ -16,6 +16,20 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
+
+  // Функция для определения времени суток и приветствия
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    const userName = authContext?.user?.firstName || 'Агент';
+    
+    if (hour >= 5 && hour < 12) {
+      return `Доброе утро, ${userName}!`;
+    } else if (hour >= 12 && hour < 18) {
+      return `Добрый день, ${userName}!`;
+    } else {
+      return `Добрый вечер, ${userName}!`;
+    }
+  };
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -57,70 +71,344 @@ const DashboardPage = () => {
   };
 
   return (
-    <>
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Card style={{ backgroundColor: '#e6f7ff' }}>
-            <Statistic
-              title="Всего объектов"
-              value={stats.total}
-              prefix={<HomeOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Card style={{ backgroundColor: '#f6ffed' }}>
-            <Statistic
-              title="В продаже"
-              value={stats.forSale}
-              valueStyle={{ color: '#52c41a' }}
-              prefix={<CheckSquareOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Card style={{ backgroundColor: '#f9f0ff' }}>
-            <Statistic
-              title="Эксклюзивы"
-              value={stats.exclusives}
-              valueStyle={{ color: '#722ed1' }}
-              prefix={<StarOutlined />}
-            />
-          </Card>
-        </Col>
-      </Row>
+    <div style={{ 
+      background: 'var(--background-color)',
+      minHeight: '100vh',
+      padding: '24px 0'
+    }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+        {/* Welcome Section */}
+        <div className="welcome-section" style={{ 
+          marginBottom: 32,
+          padding: '32px',
+          background: 'var(--card-background)',
+          borderRadius: '20px',
+          border: '1px solid var(--border-color)',
+          boxShadow: '0 20px 40px var(--shadow-color), 0 8px 16px var(--shadow-light)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Декоративные элементы */}
+          <div style={{
+            position: 'absolute',
+            bottom: '-30px',
+            left: '-30px',
+            width: '120px',
+            height: '120px',
+            background: 'var(--gradient-secondary)',
+            borderRadius: '50%',
+            zIndex: 0
+          }} />
+          
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '12px', 
+                  marginBottom: '8px' 
+                }}>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    background: 'var(--gradient-primary)',
+                    borderRadius: '50%',
+                    animation: 'pulse 2s infinite'
+                  }} />
+                  <span style={{ 
+                    fontSize: '14px', 
+                    color: 'var(--text-secondary)', 
+                    fontWeight: '500',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    {new Date().toLocaleDateString('ru-RU', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </span>
+                </div>
+                <Title level={1} style={{ 
+                  margin: 0, 
+                  color: '#000000',
+                  fontSize: '2.5rem',
+                  fontWeight: '700'
+                }}>
+                  {getGreeting()}
+                </Title>
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '24px 20px',
+                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.9) 100%)',
+                borderRadius: '20px',
+                border: '1px solid var(--border-color)',
+                minWidth: '100px',
+                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.08)',
+                backdropFilter: 'blur(10px)',
+                position: 'relative'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  top: '8px',
+                  right: '8px',
+                  width: '6px',
+                  height: '6px',
+                  background: 'var(--success-color)',
+                  borderRadius: '50%',
+                  animation: 'pulse 2s infinite'
+                }} />
+                <div style={{ 
+                  fontSize: '28px', 
+                  color: 'var(--text-primary)', 
+                  fontWeight: '800',
+                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+                  letterSpacing: '-0.5px',
+                  lineHeight: '1'
+                }}>
+                  {new Date().toLocaleTimeString('ru-RU', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false
+                  })}
+                </div>
+                <div style={{ 
+                  fontSize: '11px', 
+                  color: 'var(--text-secondary)',
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1.5px',
+                  opacity: 0.8
+                }}>
+                  {new Date().toLocaleDateString('ru-RU', { 
+                    day: '2-digit', 
+                    month: '2-digit',
+                    year: '2-digit'
+                  })}
+                </div>
+              </div>
+            </div>
+            
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '16px',
+              flexWrap: 'wrap'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                background: 'rgba(34, 197, 94, 0.1)',
+                borderRadius: '20px',
+                border: '1px solid rgba(34, 197, 94, 0.2)'
+              }}>
+                <div style={{
+                  width: '6px',
+                  height: '6px',
+                  background: 'var(--success-color)',
+                  borderRadius: '50%',
+                  animation: 'pulse 2s infinite'
+                }} />
+                <span style={{ fontSize: '14px', color: 'var(--success-color)', fontWeight: '500' }}>
+                  Система активна
+                </span>
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                background: 'rgba(59, 130, 246, 0.1)',
+                borderRadius: '20px',
+                border: '1px solid rgba(59, 130, 246, 0.2)'
+              }}>
+                <div style={{
+                  width: '6px',
+                  height: '6px',
+                  background: 'var(--info-color)',
+                  borderRadius: '50%'
+                }} />
+                <span style={{ fontSize: '14px', color: 'var(--info-color)', fontWeight: '500' }}>
+                  {authContext?.user?.role === 'agent' ? 'Агент' : 'Директор'}
+                </span>
+              </div>
+            </div>
+            
+            <p style={{ 
+              fontSize: '16px', 
+              color: 'var(--text-secondary)', 
+              margin: '16px 0 0 0',
+              lineHeight: '1.6',
+              maxWidth: '600px'
+            }}>
+              Добро пожаловать в вашу панель управления недвижимостью. Здесь вы можете эффективно управлять объектами, клиентами и сделками.
+            </p>
+          </div>
+        </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <Title level={4}>Недавно добавленные объекты</Title>
-        <Button
-          type="primary"
-          onClick={() => setIsModalVisible(true)}
-        >
-          Добавить объект
-        </Button>
-      </div>
-
-      <Spin spinning={loading}>
-        {error && <Alert message="Ошибка" description={error} type="error" showIcon style={{ marginBottom: 24 }} />}
-        
-        <Row gutter={[16, 16]}>
-          {properties.length > 0 ? (
-            properties.map(property => (
-              <Col xs={24} sm={12} md={8} lg={6} key={property.id}>
-                <PropertyCard property={property} />
-              </Col>
-            ))
-          ) : (
-            !loading && <Col span={24}><Alert message="У вас пока нет объектов" type="info" /></Col>
-          )}
+        {/* Statistics Cards */}
+        <Row className="dashboard-stats" gutter={[16, 16]} style={{ marginBottom: 32 }}>
+          <Col xs={24} sm={12} md={8} lg={8}>
+            <Card 
+              style={{ 
+                background: 'var(--gradient-primary)',
+                borderRadius: '12px',
+                boxShadow: '0 4px 20px var(--shadow-light)',
+                border: 'none',
+                transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+              }}
+              hoverable
+              bodyStyle={{ padding: '24px' }}
+            >
+              <Statistic
+                title={<span style={{ color: 'var(--text-primary)', fontSize: '16px' }}>Всего объектов</span>}
+                value={stats.total}
+                valueStyle={{ color: 'var(--text-primary)', fontSize: '32px', fontWeight: 'bold' }}
+                prefix={<HomeOutlined style={{ color: 'var(--primary-color)', fontSize: '24px' }} />}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={8}>
+            <Card 
+              style={{ 
+                background: 'var(--gradient-secondary)',
+                borderRadius: '12px',
+                boxShadow: '0 4px 20px var(--shadow-light)',
+                border: 'none',
+                transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+              }}
+              hoverable
+              bodyStyle={{ padding: '24px' }}
+            >
+              <Statistic
+                title={<span style={{ color: 'var(--text-primary)', fontSize: '16px' }}>В продаже</span>}
+                value={stats.forSale}
+                valueStyle={{ color: 'var(--text-primary)', fontSize: '32px', fontWeight: 'bold' }}
+                prefix={<CheckSquareOutlined style={{ color: 'var(--secondary-color)', fontSize: '24px' }} />}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={8}>
+            <Card 
+              style={{ 
+                background: 'var(--gradient-tertiary)',
+                borderRadius: '12px',
+                boxShadow: '0 4px 20px var(--shadow-light)',
+                border: 'none',
+                transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+              }}
+              hoverable
+              bodyStyle={{ padding: '24px' }}
+            >
+              <Statistic
+                title={<span style={{ color: 'var(--text-primary)', fontSize: '16px' }}>Эксклюзивы</span>}
+                value={stats.exclusives}
+                valueStyle={{ color: 'var(--text-primary)', fontSize: '32px', fontWeight: 'bold' }}
+                prefix={<StarOutlined style={{ color: 'var(--info-color)', fontSize: '24px' }} />}
+              />
+            </Card>
+          </Col>
         </Row>
-      </Spin>
+
+        {/* Properties Section */}
+        <Card 
+          style={{ 
+            borderRadius: '16px',
+            boxShadow: '0 8px 32px var(--shadow-light)',
+            border: 'none',
+            background: 'var(--card-background)'
+          }}
+        >
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginBottom: 24,
+            padding: '0 8px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <FireOutlined style={{ fontSize: '24px', color: 'var(--warning-color)' }} />
+              <Title level={3} style={{ margin: 0, color: 'var(--text-primary)' }}>
+                Недавно добавленные объекты
+              </Title>
+            </div>
+            <Button
+              type="primary"
+              size="large"
+              icon={<PlusOutlined />}
+              onClick={() => setIsModalVisible(true)}
+              style={{
+                background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%)',
+                border: 'none',
+                borderRadius: '8px',
+                boxShadow: '0 4px 15px var(--shadow-light)',
+                transition: 'transform 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              Добавить объект
+            </Button>
+          </div>
+
+          <Divider style={{ margin: '16px 0 24px 0' }} />
+
+          <Spin spinning={loading}>
+            {error && <Alert message="Ошибка" description={error} type="error" showIcon style={{ marginBottom: 24 }} />}
+            
+            <Row gutter={[16, 16]}>
+              {properties.length > 0 ? (
+                properties.map(property => (
+                  <Col xs={24} sm={12} md={8} lg={8} key={property.id}>
+                    <PropertyCard property={property} />
+                  </Col>
+                ))
+              ) : (
+                !loading && (
+                  <Col span={24}>
+                    <div style={{ 
+                      textAlign: 'center', 
+                      padding: '48px 24px',
+                      background: 'var(--background-color)',
+                      borderRadius: '12px',
+                      border: '2px dashed var(--border-color)'
+                    }}>
+                      <HomeOutlined style={{ fontSize: '48px', color: 'var(--text-muted)', marginBottom: '16px' }} />
+                      <Title level={4} style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                        У вас пока нет объектов
+                      </Title>
+                      <p style={{ color: 'var(--text-muted)', margin: '8px 0 0 0' }}>
+                        Добавьте первый объект недвижимости, чтобы начать работу
+                      </p>
+                    </div>
+                  </Col>
+                )
+              )}
+            </Row>
+          </Spin>
+        </Card>
+      </div>
 
       <Modal
         title="Добавить новый объект"
         open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
         footer={null}
+        style={{ top: 20 }}
       >
         <CreatePropertyForm
           onSubmit={handleCreateProperty}
@@ -128,7 +416,7 @@ const DashboardPage = () => {
           loading={loading}
         />
       </Modal>
-    </>
+    </div>
   );
 };
 
