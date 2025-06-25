@@ -9,8 +9,10 @@ import PropertyCard from '../components/PropertyCard';
 import { Property, PropertyStatus } from '../types';
 import { getRecentProperties, updatePropertyStatus } from '../services/property.service';
 import { AuthContext } from '../context/AuthContext';
-import { SearchOutlined, HomeOutlined, AppstoreOutlined, NumberOutlined, ExpandOutlined, HighlightOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { SearchOutlined, HomeOutlined, AppstoreOutlined, NumberOutlined, ExpandOutlined, HighlightOutlined, CloseCircleOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import 'leaflet-geometryutil';
+import UniversalMapYandex from '../components/UniversalMapYandex';
+import { useNavigate } from 'react-router-dom';
 
 const { Title } = Typography;
 
@@ -116,6 +118,7 @@ const PropertiesPage: React.FC = () => {
     { value: 'land', label: 'Участок' },
   ];
   const [drawMode, setDrawMode] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setLoading(true);
@@ -183,11 +186,38 @@ const PropertiesPage: React.FC = () => {
       })
     : filteredProperties;
 
+  // Функция для перехода на большую карту с фильтрами
+  const handleOpenBigMap = () => {
+    const params = new URLSearchParams();
+    if (searchText) params.set('search', searchText);
+    if (minPrice !== undefined) params.set('minPrice', String(minPrice));
+    if (maxPrice !== undefined) params.set('maxPrice', String(maxPrice));
+    if (status) params.set('status', status);
+    if (minArea !== undefined) params.set('minArea', String(minArea));
+    if (maxArea !== undefined) params.set('maxArea', String(maxArea));
+    if (propertyType) params.set('type', propertyType);
+    if (rooms !== undefined) params.set('rooms', String(rooms));
+    if (activeTab) params.set('tab', activeTab);
+    if (selectedPOITypes.length > 0) params.set('poi', selectedPOITypes.join(','));
+    navigate(`/map?${params.toString()}`);
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(120deg, #f8fafc 0%, #e9f0fb 100%)', padding: '32px 0' }}>
-      <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 1440, margin: '0 auto', padding: '0 24px' }}>
         <Title level={2} style={{ marginBottom: 32, fontWeight: 800, letterSpacing: -1 }}>Объекты недвижимости</Title>
+        <Button
+          type="primary"
+          size="large"
+          icon={<EnvironmentOutlined />}
+          style={{ marginLeft: 24, fontWeight: 600, fontSize: 18, height: 48, borderRadius: 12 }}
+          onClick={handleOpenBigMap}
+        >
+          Открыть большую карту
+        </Button>
+      </div>
 
+      <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 24px' }}>
         <Tabs
           activeKey={activeTab}
           onChange={key => setActiveTab(key as 'active' | 'archive')}
@@ -326,45 +356,12 @@ const PropertiesPage: React.FC = () => {
           overflow: 'hidden',
           border: '1px solid #e6eaf1'
         }}>
-          <MapContainer
-            center={mapCenter}
-            zoom={12}
+          <UniversalMapYandex
+            properties={filteredProperties}
+            initialCenter={mapCenter}
+            initialZoom={12}
             style={{ height: 350, width: '100%', borderRadius: 18 }}
-            ref={mapRef}
-          >
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <FeatureGroup>
-              {drawMode && (
-                <EditControl
-                  position="topright"
-                  onCreated={e => {
-                    setDrawnArea(e.layer.getLatLngs()[0]);
-                    setDrawMode(false);
-                  }}
-                  onDeleted={() => setDrawnArea(null)}
-                  draw={{ rectangle: false, circle: false, marker: false, polyline: false, circlemarker: false }}
-                />
-              )}
-            </FeatureGroup>
-            {mapBounds && selectedPOITypes.length > 0 && <InfrastructureLayer bounds={mapBounds} filterKeys={selectedPOITypes} />}
-            {filteredProperties.map(property => {
-              if (drawnArea && property.lat !== undefined && property.lng !== undefined) {
-                const point = L.latLng(property.lat, property.lng);
-                const poly = (drawnArea as L.LatLng[]).map((latlng: any) => L.latLng(latlng.lat, latlng.lng));
-                if (!pointInPolygon(point, poly)) return null;
-              }
-              if (drawnArea && (property.lat === undefined || property.lng === undefined)) return null;
-              return property.lat !== undefined && property.lng !== undefined && (
-                <Marker key={property.id} position={[property.lat, property.lng]}>
-                  <Popup>
-                    <b>{property.title}</b><br />
-                    {property.address}<br />
-                    <a href={`/properties/${property.id}`}>Подробнее</a>
-                  </Popup>
-                </Marker>
-              );
-            })}
-          </MapContainer>
+          />
         </div>
 
         {/* Список объектов */}

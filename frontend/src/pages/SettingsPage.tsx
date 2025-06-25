@@ -2,6 +2,9 @@ import React, { useState, useContext, useEffect } from 'react';
 import { Tabs, Input, Button, Switch, Select, Card, Typography, Checkbox, message } from 'antd';
 import { AuthContext } from '../context/AuthContext';
 import { getUserNotificationSettings, updateUserNotificationSettings } from '../services/notification.service';
+import { updateProfile } from '../services/auth.service';
+import { User } from '../types';
+import { getCityByIP } from '../utils/geocode';
 
 const { Title, Text } = Typography;
 
@@ -16,11 +19,35 @@ const cardStyle = {
   marginBottom: 32,
 };
 
-const generalTab = (
+const generalTab = (user: Partial<User>, setUser: React.Dispatch<React.SetStateAction<Partial<User>>>, setAuthData: ((token: string | null, user: User | null) => void) | undefined) => (
   <Card style={cardStyle} bodyStyle={{ padding: 0 }}>
     <Title level={3} style={{ marginBottom: 8, fontWeight: 700, letterSpacing: 0.5 }}>Общие настройки</Title>
     <Text type="secondary" style={{ fontSize: 16 }}>Управляйте основными настройками вашего аккаунта</Text>
     <div style={{ marginTop: 32 }}>
+      <div style={{ marginBottom: 16, fontWeight: 500 }}>Город</div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 20 }}>
+        <Input
+          value={user.city || ''}
+          onChange={e => setUser((prev: any) => ({ ...prev, city: e.target.value }))}
+          placeholder="Ваш город"
+          style={{ width: 200 }}
+          size="large"
+        />
+        <Button 
+          onClick={async () => {
+            const city = await getCityByIP();
+            if (city) {
+              setUser((prev: any) => ({ ...prev, city }));
+              message.success(`Определён город: ${city}`);
+            } else {
+              message.error('Не удалось определить город по IP');
+            }
+          }}
+          style={{ borderRadius: 8 }}
+        >
+          Определить по IP
+        </Button>
+      </div>
       <div style={{ marginBottom: 16, fontWeight: 500 }}>Язык интерфейса</div>
       <Select defaultValue="Русский" style={{ width: 260, marginBottom: 20 }} size="large">
         <Select.Option value="Русский">Русский</Select.Option>
@@ -33,7 +60,13 @@ const generalTab = (
       </Select>
       <div style={{ marginBottom: 16, fontWeight: 500 }}>Формат даты</div>
       <Input defaultValue="ДД.MM.ГГГГ" style={{ width: 260, marginBottom: 32 }} size="large" />
-      <Button type="primary" size="large" style={{ borderRadius: 12, fontWeight: 600 }}>Сохранить изменения</Button>
+      <Button type="primary" size="large" style={{ borderRadius: 12, fontWeight: 600 }} onClick={async () => {
+        const updated = await updateProfile({ city: user.city });
+        if (setAuthData) {
+          setAuthData(localStorage.getItem('token'), updated);
+        }
+        message.success('Город обновлён');
+      }}>Сохранить изменения</Button>
     </div>
   </Card>
 );
@@ -159,6 +192,8 @@ const tabItems = [
 ];
 
 export default function SettingsPage() {
+  const auth = useContext(AuthContext);
+  const [user, setUser] = useState(auth?.user || {});
   const [activeTab, setActiveTab] = useState('general');
   return (
     <div style={{
@@ -177,7 +212,12 @@ export default function SettingsPage() {
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
-          items={tabItems}
+          items={[
+            { key: 'general', label: 'Общие', children: generalTab(user, setUser, auth?.setAuthData) },
+            { key: 'notifications', label: 'Уведомления', children: <NotificationSettingsTab /> },
+            { key: 'appearance', label: 'Внешний вид', children: appearanceTab },
+            { key: 'api', label: 'API и интеграции', children: apiTab },
+          ]}
           style={{ background: 'transparent', width: '100%' }}
           tabBarStyle={{ fontSize: 22, fontWeight: 700, marginBottom: 32, paddingLeft: 24 }}
         />

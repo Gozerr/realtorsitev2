@@ -9,4 +9,9 @@ export const login = async (credentials: LoginCredentials): Promise<{ access_tok
 export const updateProfile = async (userData: Partial<User>): Promise<User> => {
   const response = await api.patch('/users/profile', userData);
   return response.data;
+};
+
+export const updateUser = async (id: number, userData: Partial<User>): Promise<User> => {
+  const response = await api.patch(`/users/${id}`, userData);
+  return response.data;
 }; 

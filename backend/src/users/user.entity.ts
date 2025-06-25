@@ -37,6 +37,12 @@ export class User {
   @Column({ nullable: true })
   phone: string;
 
+  @Column({ nullable: true })
+  city: string;
+
+  @Column({ nullable: true })
+  region: string;
+
   @Column({
     type: 'simple-enum',
     enum: UserRole,

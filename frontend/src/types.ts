@@ -10,6 +10,8 @@ export interface User {
   agencyId?: number;
   phone?: string;
   avatar?: string;
+  city?: string;
+  region?: string;
 }
 
 export interface LoginCredentials {
