@@ -66,4 +66,14 @@ export class PropertiesController {
     const userId = req.user.userId;
     return this.propertiesService.updateStatus(+id, body.status, userId);
   }
+
+  // Новый эндпоинт для поиска по карте (bbox)
+  @Get('map')
+  async getPropertiesByMap(@Query('bbox') bbox: string, @Query() query: any) {
+    // bbox: 'sw_lng,sw_lat,ne_lng,ne_lat'
+    if (!bbox) throw new NotFoundException('Не переданы границы карты (bbox)');
+    const [sw_lng, sw_lat, ne_lng, ne_lat] = bbox.split(',').map(Number);
+    // Можно добавить фильтры (цена, статус и т.д.)
+    return this.propertiesService.findByBoundingBox(sw_lng, sw_lat, ne_lng, ne_lat, query);
+  }
 }

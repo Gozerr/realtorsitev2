@@ -182,4 +182,24 @@ export class PropertiesService {
     }
     return saved;
   }
+
+  // Поиск объектов по bbox (карта)
+  async findByBoundingBox(sw_lng: number, sw_lat: number, ne_lng: number, ne_lat: number, filters: any): Promise<Property[]> {
+    const qb = this.propertiesRepository.createQueryBuilder('property')
+      .leftJoinAndSelect('property.agent', 'agent')
+      .where('property.lat BETWEEN :sw_lat AND :ne_lat', { sw_lat, ne_lat })
+      .andWhere('property.lng BETWEEN :sw_lng AND :ne_lng', { sw_lng, ne_lng });
+    // Фильтры (пример: статус, цена)
+    if (filters.status) {
+      qb.andWhere('property.status = :status', { status: filters.status });
+    }
+    if (filters.minPrice) {
+      qb.andWhere('property.price >= :minPrice', { minPrice: Number(filters.minPrice) });
+    }
+    if (filters.maxPrice) {
+      qb.andWhere('property.price <= :maxPrice', { maxPrice: Number(filters.maxPrice) });
+    }
+    // Можно добавить другие фильтры
+    return qb.getMany();
+  }
 }
