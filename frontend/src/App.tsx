@@ -17,6 +17,7 @@ import EducationPage from './pages/EducationPage';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthContext } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
+import MapSearchPage from './pages/MapSearchPage';
 
 // ProtectedRoute: только для авторизованных
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -62,6 +63,7 @@ function App() {
                   <Route path="education" element={<EducationPage />} />
                   <Route path="profile" element={<ProfilePage />} />
                   <Route path="settings" element={<SettingsPage />} />
+                  <Route path="map" element={<MapSearchPage />} />
                 </Route>
               </Routes>
             </Router>
