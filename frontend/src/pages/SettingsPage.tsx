@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { Tabs, Input, Button, Switch, Select, Card, Typography } from 'antd';
+import React, { useState, useContext, useEffect } from 'react';
+import { Tabs, Input, Button, Switch, Select, Card, Typography, Checkbox, message } from 'antd';
+import { AuthContext } from '../context/AuthContext';
+import { getUserNotificationSettings, updateUserNotificationSettings } from '../services/notification.service';
 
 const { Title, Text } = Typography;
 
@@ -36,22 +38,69 @@ const generalTab = (
   </Card>
 );
 
-const notificationsTab = (
-  <Card style={cardStyle} bodyStyle={{ padding: 0 }}>
-    <Title level={3} style={{ marginBottom: 8, fontWeight: 700, letterSpacing: 0.5 }}>Настройки уведомлений</Title>
-    <Text type="secondary" style={{ fontSize: 16 }}>Настройте способы получения уведомлений</Text>
-    <div style={{ marginTop: 32 }}>
-      <div style={{ marginBottom: 16, fontWeight: 500 }}>Уведомления <Switch defaultChecked style={{ marginLeft: 8 }} /></div>
-      <div style={{ marginBottom: 16, fontWeight: 500 }}>Email уведомления <Switch defaultChecked style={{ marginLeft: 8 }} /></div>
-      <div style={{ marginBottom: 16, fontWeight: 500 }}>SMS уведомления <Switch style={{ marginLeft: 8 }} /></div>
-      <div style={{ marginBottom: 16, fontWeight: 500 }}>Email для уведомлений</div>
-      <Input defaultValue="your@email.com" style={{ width: 260, marginBottom: 20 }} size="large" />
-      <div style={{ marginBottom: 16, fontWeight: 500 }}>Телефон для SMS</div>
-      <Input defaultValue="+7 (___) ___-__-__" style={{ width: 260, marginBottom: 32 }} size="large" />
-      <Button type="primary" size="large" style={{ borderRadius: 12, fontWeight: 600 }}>Сохранить изменения</Button>
-    </div>
-  </Card>
-);
+const notificationCategories = [
+  { key: 'property', label: 'Изменения по объектам недвижимости' },
+  { key: 'education', label: 'Обучающие события и напоминания' },
+  { key: 'system', label: 'Системные обновления' },
+];
+
+function NotificationSettingsTab() {
+  const auth = useContext(AuthContext);
+  const userId = auth?.user?.id;
+  const [checked, setChecked] = React.useState<{ [key: string]: boolean }>({
+    property: true,
+    education: true,
+    system: true,
+  });
+  const [loading, setLoading] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+
+  useEffect(() => {
+    if (!userId) return;
+    setLoading(true);
+    getUserNotificationSettings(userId)
+      .then(data => setChecked({
+        property: data.property,
+        education: data.education,
+        system: data.system,
+      }))
+      .finally(() => setLoading(false));
+  }, [userId]);
+
+  const handleChange = (key: string, value: boolean) => {
+    setChecked(prev => ({ ...prev, [key]: value }));
+  };
+  const handleSave = async () => {
+    if (!userId) return;
+    setSaving(true);
+    await updateUserNotificationSettings(userId, checked);
+    setSaving(false);
+    message.success('Настройки уведомлений сохранены');
+  };
+
+  return (
+    <Card style={cardStyle} bodyStyle={{ padding: 0 }}>
+      <Title level={3} style={{ marginBottom: 8, fontWeight: 700, letterSpacing: 0.5 }}>Настройки уведомлений</Title>
+      <Text type="secondary" style={{ fontSize: 16 }}>Выберите, какие уведомления вы хотите получать</Text>
+      <div style={{ marginTop: 32 }}>
+        {notificationCategories.map(cat => (
+          <div key={cat.key} style={{ marginBottom: 20, fontWeight: 500, fontSize: 16 }}>
+            <Checkbox
+              checked={checked[cat.key]}
+              onChange={e => handleChange(cat.key, e.target.checked)}
+              disabled={loading}
+            >
+              {cat.label}
+            </Checkbox>
+          </div>
+        ))}
+        <Button type="primary" size="large" style={{ borderRadius: 12, fontWeight: 600 }} loading={saving} onClick={handleSave} disabled={loading}>
+          Сохранить изменения
+        </Button>
+      </div>
+    </Card>
+  );
+}
 
 const appearanceTab = (
   <Card style={cardStyle} bodyStyle={{ padding: 0 }}>
@@ -104,7 +153,7 @@ const apiTab = (
 
 const tabItems = [
   { key: 'general', label: 'Общие', children: generalTab },
-  { key: 'notifications', label: 'Уведомления', children: notificationsTab },
+  { key: 'notifications', label: 'Уведомления', children: <NotificationSettingsTab /> },
   { key: 'appearance', label: 'Внешний вид', children: appearanceTab },
   { key: 'api', label: 'API и интеграции', children: apiTab },
 ];

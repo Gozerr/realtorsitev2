@@ -8,6 +8,8 @@ export interface User {
   photo?: string;
   role: 'agent' | 'director';
   agencyId?: number;
+  phone?: string;
+  avatar?: string;
 }
 
 export interface LoginCredentials {

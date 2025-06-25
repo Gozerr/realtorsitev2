@@ -1,101 +1,104 @@
 import React, { useState } from 'react';
-import { Badge, Tabs, List, Popover } from 'antd';
+import { Badge, Tabs, List, Popover, Spin } from 'antd';
 import { BellOutlined, UserOutlined, HomeOutlined, MessageOutlined, InfoCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-
-// Мок-данные уведомлений (дублируем для простоты)
-const mockNotifications = [
-  {
-    id: 1,
-    type: 'clients',
-    title: 'Новый клиент',
-    description: 'Добавлен новый клиент: Анна Смирнова',
-    time: 'Сегодня, 10:30',
-    isNew: true,
-    icon: <UserOutlined style={{ color: '#e85aad' }} />,
-  },
-  {
-    id: 2,
-    type: 'objects',
-    title: 'Изменение статуса',
-    description: 'Объект "ул. Ленина, 10" забронирован',
-    time: 'Сегодня, 09:15',
-    isNew: true,
-    icon: <HomeOutlined style={{ color: '#6c63ff' }} />,
-  },
-  {
-    id: 3,
-    type: 'messages',
-    title: 'Новое сообщение',
-    description: 'Сообщение от Сбербанка по ипотеке',
-    time: 'Вчера, 15:20',
-    isNew: false,
-    icon: <MessageOutlined style={{ color: '#4caf50' }} />,
-  },
-  {
-    id: 6,
-    type: 'system',
-    title: 'Системное уведомление',
-    description: 'Обновление платформы будет произведено 15 мая в 03:00',
-    time: '15.05.2023, 12:00',
-    isNew: false,
-    icon: <InfoCircleOutlined style={{ color: '#2196f3' }} />,
-  },
-];
+import { getUserNotifications, markNotificationAsRead, subscribeToNotifications } from '../services/notification.service';
+import { AuthContext } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 
 export default function NotificationDropdown() {
+  const { notifications, setNotifications } = useNotifications();
   const [open, setOpen] = useState(false);
-  const mainNotifications = mockNotifications.filter(n => n.type !== 'system');
-  const systemNotifications = mockNotifications.filter(n => n.type === 'system');
-  const unreadCount = mockNotifications.filter(n => n.isNew).length;
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const authContext = React.useContext(AuthContext);
 
-  const handleNotificationClick = (id: number) => {
+  const mainNotifications = notifications.filter((n: any) => n.type !== 'system');
+  const systemNotifications = notifications.filter((n: any) => n.type === 'system');
+  const unreadCount = notifications.filter((n: any) => n.isNew).length;
+
+  const handleNotificationClick = async (id: number) => {
     setOpen(false);
+    await markNotificationAsRead(id);
+    setNotifications((notifications: any[]) => notifications.map((n: any) => n.id === id ? { ...n, isNew: false } : n));
     navigate(`/notifications#notification-${id}`);
+  };
+
+  const handleMarkAllAsRead = async () => {
+    for (const n of (notifications as any[]).filter((n: any) => n.isNew)) {
+      await markNotificationAsRead(n.id);
+    }
+    setNotifications((notifications: any[]) => (notifications as any[]).map((n: any) => ({ ...n, isNew: false })));
   };
 
   const content = (
     <Tabs defaultActiveKey="main" style={{ width: 320 }}>
       <Tabs.TabPane tab="Основные" key="main">
-        <List
-          dataSource={mainNotifications.slice(0, 3)}
-          renderItem={item => (
-            <List.Item onClick={() => handleNotificationClick(item.id)} style={{ cursor: 'pointer' }}>
-              <List.Item.Meta
-                avatar={item.icon}
-                title={<span>{item.title} {item.isNew && <Badge color="blue" text="Новое" />}</span>}
-                description={<>
-                  <div>{item.description}</div>
-                  <div style={{ fontSize: 12, color: '#888' }}>{item.time}</div>
-                </>}
-              />
-            </List.Item>
-          )}
-        />
+        {loading ? <Spin /> : (
+          <List
+            dataSource={mainNotifications.slice(0, 3)}
+            renderItem={(item: any) => (
+              <List.Item onClick={() => handleNotificationClick(item.id)} style={{ cursor: 'pointer' }}>
+                <List.Item.Meta
+                  avatar={getIcon(item.type)}
+                  title={<span>{item.title} {item.isNew && <Badge color="blue" text="Новое" />}</span>}
+                  description={<>
+                    <div>{item.description}</div>
+                    <div style={{ fontSize: 12, color: '#888' }}>{formatTime(item.createdAt)}</div>
+                  </>}
+                />
+              </List.Item>
+            )}
+          />
+        )}
+        {mainNotifications.some((n: any) => n.isNew) && (
+          <div style={{ textAlign: 'center', marginTop: 8 }}>
+            <a onClick={handleMarkAllAsRead} style={{ color: '#6c63ff', cursor: 'pointer', fontWeight: 500 }}>Прочитать все</a>
+          </div>
+        )}
       </Tabs.TabPane>
       <Tabs.TabPane tab="Система" key="system">
         <List
           dataSource={systemNotifications.slice(0, 3)}
-          renderItem={item => (
+          renderItem={(item: any) => (
             <List.Item onClick={() => handleNotificationClick(item.id)} style={{ cursor: 'pointer' }}>
               <List.Item.Meta
-                avatar={item.icon}
+                avatar={getIcon(item.type)}
                 title={<span>{item.title} {item.isNew && <Badge color="blue" text="Новое" />}</span>}
                 description={<>
                   <div>{item.description}</div>
-                  <div style={{ fontSize: 12, color: '#888' }}>{item.time}</div>
+                  <div style={{ fontSize: 12, color: '#888' }}>{formatTime(item.createdAt)}</div>
                 </>}
               />
             </List.Item>
           )}
         />
+        {systemNotifications.some((n: any) => n.isNew) && (
+          <div style={{ textAlign: 'center', marginTop: 8 }}>
+            <a onClick={handleMarkAllAsRead} style={{ color: '#6c63ff', cursor: 'pointer', fontWeight: 500 }}>Прочитать все</a>
+          </div>
+        )}
       </Tabs.TabPane>
       <div style={{ textAlign: 'center', marginTop: 8 }}>
         <a href="/notifications">Все уведомления</a>
       </div>
     </Tabs>
   );
+
+  function getIcon(type: string) {
+    switch (type) {
+      case 'clients': return <UserOutlined style={{ color: '#e85aad' }} />;
+      case 'objects': return <HomeOutlined style={{ color: '#6c63ff' }} />;
+      case 'messages': return <MessageOutlined style={{ color: '#4caf50' }} />;
+      case 'reminder': return <ClockCircleOutlined style={{ color: '#ff9800' }} />;
+      case 'system': return <InfoCircleOutlined style={{ color: '#2196f3' }} />;
+      default: return <InfoCircleOutlined />;
+    }
+  }
+  function formatTime(date: string) {
+    const d = new Date(date);
+    return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
 
   return (
     <Popover

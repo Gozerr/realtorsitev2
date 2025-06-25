@@ -1,7 +1,19 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Param, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  Param,
+  NotFoundException,
+  Patch,
+  Query,
+} from '@nestjs/common';
 import { PropertiesService } from './properties.service';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PropertyStatus } from './property.entity';
 
 @Controller('properties')
 export class PropertiesController {
@@ -28,9 +40,11 @@ export class PropertiesController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  findAllForAgent(@Request() req) {
-    const agentId = req.user.userId;
-    return this.propertiesService.findAllForAgent(agentId);
+  async getProperties(@Query('agentId') agentId?: string) {
+    if (agentId) {
+      return this.propertiesService.findAllForAgent(Number(agentId));
+    }
+    return this.propertiesService.findAllRecent();
   }
 
   @UseGuards(JwtAuthGuard)
@@ -44,5 +58,12 @@ export class PropertiesController {
   @Get('all-photos')
   async getAllPhotos() {
     return this.propertiesService.getAllPhotos();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/status')
+  async updateStatus(@Param('id') id: string, @Body() body: { status: PropertyStatus }, @Request() req) {
+    const userId = req.user.userId;
+    return this.propertiesService.updateStatus(+id, body.status, userId);
   }
 }

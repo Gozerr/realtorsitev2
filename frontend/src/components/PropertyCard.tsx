@@ -1,8 +1,10 @@
-import React from 'react';
-import { Card, Carousel, Tag, Select, Button, Tooltip } from 'antd';
+import React, { useState, useRef } from 'react';
+import { Card, Carousel, Tag, Button, Tooltip, Modal, Form, Select } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { Property } from '../types';
 import { MessageOutlined, PlusOutlined } from '@ant-design/icons';
+import AddToSelectionModal from './AddToSelectionModal';
+import { updatePropertyStatus } from '../services/property.service';
 
 const statusOptions = [
   { value: 'for_sale', label: 'В продаже', color: 'green' },
@@ -20,8 +22,25 @@ type PropertyCardProps = {
 const PropertyCard: React.FC<PropertyCardProps> = ({ property, isAgent, onStatusChange }) => {
   const images: string[] = property.photos || property.images || [];
   const navigate = useNavigate();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState(property.status);
 
   const currentStatus = statusOptions.find(opt => opt.value === property.status) || statusOptions[0];
+
+  const handleTagClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedStatus(property.status);
+    setStatusModalOpen(true);
+  };
+
+  const handleSaveStatus = async () => {
+    setStatusModalOpen(false);
+    if (selectedStatus !== property.status) {
+      await updatePropertyStatus(property.id, selectedStatus);
+      onStatusChange && onStatusChange(property.id, selectedStatus);
+    }
+  };
 
   return (
     <Card
@@ -71,12 +90,41 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, isAgent, onStatus
           Эксклюзивный объект
         </Tag>
         {isAgent ? (
-          <Select
-            value={property.status}
-            style={{ width: 160 }}
-            onChange={value => onStatusChange && onStatusChange(property.id, value)}
-            options={statusOptions}
-          />
+          <>
+            <Tag
+              color={currentStatus.color}
+              style={{ fontWeight: 500, cursor: 'pointer', minWidth: 90, textAlign: 'center', fontSize: 13, border: '1.5px solid #e6eaf1', boxShadow: '0 2px 8px #f0f1f3', borderRadius: 8, padding: '2px 10px', lineHeight: 1.2, letterSpacing: 0.1 }}
+              onClick={handleTagClick}
+            >
+              {currentStatus.label}
+            </Tag>
+            <Modal
+              open={statusModalOpen}
+              onCancel={() => setStatusModalOpen(false)}
+              title="Изменить статус объекта"
+              footer={null}
+              destroyOnClose
+            >
+              <Form layout="vertical" onFinish={handleSaveStatus}>
+                <Form.Item label="Статус">
+                  <Select
+                    value={selectedStatus}
+                    onChange={setSelectedStatus}
+                    style={{ width: '100%' }}
+                    options={statusOptions.map(opt => ({
+                      value: opt.value,
+                      label: <Tag color={opt.color} style={{ minWidth: 70, textAlign: 'center', fontWeight: 500, fontSize: 13, borderRadius: 8, padding: '2px 10px', lineHeight: 1.2, letterSpacing: 0.1 }}>{opt.label}</Tag>
+                    }))}
+                  />
+                </Form.Item>
+                <Form.Item>
+                  <Button type="primary" htmlType="submit" style={{ float: 'right' }}>
+                    Сохранить
+                  </Button>
+                </Form.Item>
+              </Form>
+            </Modal>
+          </>
         ) : (
           <Tag color={currentStatus.color} style={{ fontWeight: 500 }}>
             {currentStatus.label}
@@ -87,7 +135,13 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, isAgent, onStatus
       <p style={{ color: 'var(--text-primary)' }}><b>Цена:</b> {property.price} ₽</p>
       <p style={{ color: 'var(--text-primary)' }}><b>Площадь:</b> {property.area} м²</p>
       <p style={{ color: 'var(--text-secondary)' }}><b>Описание:</b> {property.description}</p>
-      {/* ...другие поля... */}
+      {property.agent && (
+        <div style={{ marginTop: 12, marginBottom: 8, padding: 8, background: '#f6f6fa', borderRadius: 8 }}>
+          <b>Агент:</b> {property.agent.firstName} {property.agent.lastName}<br/>
+          <b>Телефон:</b> {property.agent.phone || '—'}<br/>
+          <b>Email:</b> {property.agent.email}
+        </div>
+      )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16 }}>
         <Button type="default" onClick={() => navigate(`/properties/${property.id}`)}>
           Подробнее
@@ -99,14 +153,15 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, isAgent, onStatus
             onClick={() => navigate(`/chats?user=${property.agent?.id}`)}
           />
         </Tooltip>
-        <Tooltip title="Добавить в избранное">
+        <Tooltip title="Добавить в подбор">
           <Button
             shape="circle"
             icon={<PlusOutlined />}
-            // onClick={...} // здесь обработчик для добавления в избранное
+            onClick={() => setModalOpen(true)}
           />
         </Tooltip>
       </div>
+      <AddToSelectionModal open={modalOpen} propertyId={property.id} onClose={() => setModalOpen(false)} />
     </Card>
   );
 };

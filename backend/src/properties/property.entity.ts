@@ -4,6 +4,7 @@ import { User } from '../users/user.entity';
 export enum PropertyStatus {
   FOR_SALE = 'for_sale',
   IN_DEAL = 'in_deal',
+  RESERVED = 'reserved',
   SOLD = 'sold',
 }
 

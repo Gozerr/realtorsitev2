@@ -3,25 +3,19 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
-import { User } from './users/user.entity';
 import { AuthModule } from './auth/auth.module';
 import { AgenciesModule } from './agencies/agencies.module';
-import { Agency } from './agencies/agency.entity';
 import { PropertiesModule } from './properties/properties.module';
-import { Property } from './properties/property.entity';
 import { ClientsModule } from './clients/clients.module';
-import { Client } from './clients/client.entity';
 import { ChatModule } from './chat/chat.module';
-import { Conversation } from './chat/conversation.entity';
-import { Message } from './chat/message.entity';
+import { NotificationsModule } from './notifications/notifications.module';
+import { AppDataSource } from './data-source';
+import { EducationModule } from './education/education.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'sqlite',
-      database: 'db.sqlite',
-      entities: [User, Agency, Property, Client, Conversation, Message],
-      synchronize: true,
+    TypeOrmModule.forRootAsync({
+      useFactory: async () => AppDataSource.options,
     }),
     UsersModule,
     AuthModule,
@@ -29,6 +23,8 @@ import { Message } from './chat/message.entity';
     PropertiesModule,
     ClientsModule,
     ChatModule,
+    NotificationsModule,
+    EducationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

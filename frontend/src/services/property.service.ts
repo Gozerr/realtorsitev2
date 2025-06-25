@@ -37,4 +37,14 @@ export const createProperty = async (data: CreatePropertyData, token: string): P
     },
   });
   return response.data;
+};
+
+export const updatePropertyStatus = async (id: number, status: string) => {
+  const response = await api.patch(`/properties/${id}/status`, { status });
+  return response.data;
+};
+
+export const getPropertiesByAgent = async (agentId: number) => {
+  const res = await api.get(`/properties?agentId=${agentId}`);
+  return res.data;
 }; 

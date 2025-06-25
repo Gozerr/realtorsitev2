@@ -1,4 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 import { Agency } from '../agencies/agency.entity';
 import { Property } from '../properties/property.entity';
 import { Client } from '../clients/client.entity';
@@ -27,6 +33,9 @@ export class User {
 
   @Column({ nullable: true })
   photo: string;
+
+  @Column({ nullable: true })
+  phone: string;
 
   @Column({
     type: 'simple-enum',
