@@ -15,6 +15,7 @@ interface UniversalMapYandexProps {
   initialCenter?: [number, number];
   initialZoom?: number;
   style?: React.CSSProperties;
+  onBoundsChange?: (bounds: any) => void;
 }
 
 const DEFAULT_CENTER: [number, number] = [55.751244, 37.618423];
@@ -27,6 +28,7 @@ const UniversalMapYandex: React.FC<UniversalMapYandexProps> = ({
   initialCenter = DEFAULT_CENTER,
   initialZoom = DEFAULT_ZOOM,
   style = { height: 400, width: '100%' },
+  onBoundsChange,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -43,13 +45,22 @@ const UniversalMapYandex: React.FC<UniversalMapYandexProps> = ({
         zoom: initialZoom,
         controls: ['zoomControl', 'fullscreenControl'],
       });
+      if (onBoundsChange) {
+        mapRef.current.events.add('boundschange', () => {
+          const bounds = mapRef.current.getBounds();
+          if (bounds && bounds[0] && bounds[1]) {
+            const [sw, ne] = bounds;
+            onBoundsChange([sw[1], sw[0], ne[1], ne[0]]);
+          }
+        });
+      }
     };
     if (window.ymaps && window.ymaps.Map) {
       initMap();
     } else {
       window.ymaps.ready(initMap);
     }
-  }, [initialCenter, initialZoom]);
+  }, [initialCenter, initialZoom, onBoundsChange]);
 
   // Обновление маркеров и кластеров
   useEffect(() => {
@@ -66,6 +77,7 @@ const UniversalMapYandex: React.FC<UniversalMapYandexProps> = ({
         balloonContent: `<b>${p.title}</b><br/>${p.address}<br/><a href='/properties/${p.id}'>Подробнее</a>`
       }, {
         preset: selectedId === p.id ? 'islands#redIcon' : 'islands#blueIcon',
+        iconColor: selectedId === p.id ? '#ff3333' : '#3388ff',
       });
       placemark.events.add('click', () => onSelect && onSelect(p.id));
       markersRef.current.push(placemark);
@@ -80,6 +92,22 @@ const UniversalMapYandex: React.FC<UniversalMapYandexProps> = ({
     clustererRef.current.add(geoObjects);
     mapRef.current.geoObjects.add(clustererRef.current);
   }, [properties, selectedId, onSelect]);
+
+  // Плавная анимация выделения маркера (смена preset)
+  useEffect(() => {
+    if (!window.ymaps || !markersRef.current.length) return;
+    markersRef.current.forEach(placemark => {
+      const id = placemark.properties.get('balloonContent').match(/properties\/(\d+)/)?.[1];
+      if (!id) return;
+      if (Number(id) === selectedId) {
+        placemark.options.set('preset', 'islands#redIcon');
+        placemark.options.set('iconColor', '#ff3333');
+      } else {
+        placemark.options.set('preset', 'islands#blueIcon');
+        placemark.options.set('iconColor', '#3388ff');
+      }
+    });
+  }, [selectedId]);
 
   // Центрирование на выбранном объекте
   useEffect(() => {

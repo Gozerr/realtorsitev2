@@ -1,10 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useContext } from 'react';
 import { Card, Carousel, Tag, Button, Tooltip, Modal, Form, Select } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { Property } from '../types';
 import { MessageOutlined, PlusOutlined } from '@ant-design/icons';
 import AddToSelectionModal from './AddToSelectionModal';
 import { updatePropertyStatus } from '../services/property.service';
+import { AuthContext } from '../context/AuthContext';
 
 const statusOptions = [
   { value: 'for_sale', label: 'В продаже', color: 'green' },
@@ -15,16 +16,25 @@ const statusOptions = [
 
 type PropertyCardProps = {
   property: Property;
-  isAgent?: boolean; // если true — показывать Select для смены статуса
   onStatusChange?: (id: number, status: string) => void;
+  mode?: 'default' | 'compact';
 };
 
-const PropertyCard: React.FC<PropertyCardProps> = ({ property, isAgent, onStatusChange }) => {
+const PropertyCard: React.FC<PropertyCardProps> = ({ property, onStatusChange, mode = 'default' }) => {
   const images: string[] = property.photos || property.images || [];
   const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState(property.status);
+  const auth = useContext(AuthContext);
+  const currentUser = auth?.user;
+
+  // Агент может менять статус только если он привязан к объекту
+  const canEditStatus =
+    currentUser &&
+    currentUser.role === 'agent' &&
+    property.agent &&
+    property.agent.id === currentUser.id;
 
   const currentStatus = statusOptions.find(opt => opt.value === property.status) || statusOptions[0];
 
@@ -42,12 +52,66 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, isAgent, onStatus
     }
   };
 
+  if (mode === 'compact') {
+    return (
+      <Card
+        style={{
+          width: '100%',
+          marginBottom: 16,
+          position: 'relative',
+          background: 'var(--card-background)',
+          border: '1px solid var(--border-color)',
+          boxShadow: '0 2px 8px var(--shadow-light)'
+        }}
+        cover={
+          <div style={{ position: 'relative', padding: 12 }}>
+            {images.length > 0 ? (
+              <Carousel autoplay style={{ width: '100%', height: 170 }}>
+                {images.map((url: string, i: number) => (
+                  <div key={i}>
+                    <img
+                      src={url}
+                      alt={property.title}
+                      style={{ width: '100%', height: 170, objectFit: 'cover', borderRadius: 8 }}
+                      onError={e => (e.currentTarget.style.display = 'none')}
+                    />
+                  </div>
+                ))}
+              </Carousel>
+            ) : (
+              <div style={{
+                width: '100%',
+                height: 170,
+                background: 'var(--border-light)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 8,
+                color: 'var(--text-muted)'
+              }}>
+                Нет фото
+              </div>
+            )}
+          </div>
+        }
+        bodyStyle={{ padding: 16 }}
+      >
+        <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 4, color: 'var(--text-primary)' }}>{property.title}</div>
+        <div style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 4 }}>{property.address}</div>
+        <div style={{ color: 'var(--primary-color)', fontWeight: 600, fontSize: 16 }}>{property.price?.toLocaleString()} ₽</div>
+        <div style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{property.area} м²</div>
+        <Tag color="purple" style={{ fontWeight: 600, fontSize: 13, marginTop: 8 }}>Эксклюзивный объект</Tag>
+        <Tag color={currentStatus.color} style={{ fontWeight: 500, marginLeft: 8 }}>{currentStatus.label}</Tag>
+      </Card>
+    );
+  }
+
   return (
     <Card
       title={property.title}
-      style={{ 
-        width: '100%', 
-        marginBottom: 16, 
+      style={{
+        width: '100%',
+        marginBottom: 16,
         position: 'relative',
         background: 'var(--card-background)',
         border: '1px solid var(--border-color)',
@@ -69,13 +133,13 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, isAgent, onStatus
               ))}
             </Carousel>
           ) : (
-            <div style={{ 
-              width: '100%', 
-              height: 170, 
-              background: 'var(--border-light)', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
+            <div style={{
+              width: '100%',
+              height: 170,
+              background: 'var(--border-light)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               borderRadius: 8,
               color: 'var(--text-muted)'
             }}>
@@ -89,7 +153,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, isAgent, onStatus
         <Tag color="purple" style={{ fontWeight: 600, fontSize: 14 }}>
           Эксклюзивный объект
         </Tag>
-        {isAgent ? (
+        {canEditStatus ? (
           <>
             <Tag
               color={currentStatus.color}
@@ -103,7 +167,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, isAgent, onStatus
               onCancel={() => setStatusModalOpen(false)}
               title="Изменить статус объекта"
               footer={null}
-              destroyOnClose
+              destroyOnHidden
             >
               <Form layout="vertical" onFinish={handleSaveStatus}>
                 <Form.Item label="Статус">

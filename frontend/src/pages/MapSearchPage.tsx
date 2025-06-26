@@ -1,14 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React from 'react';
 import { List, Card, Spin, Input, Button, InputNumber, Select } from 'antd';
-import { Property, PropertyStatus } from '../types';
 import UniversalMapYandex from '../components/UniversalMapYandex';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { CloseOutlined } from '@ant-design/icons';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { CloseOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { AuthContext } from '../context/AuthContext';
-import { geocodeAddress, getCityByIP } from '../utils/geocode';
-
-const DEFAULT_CENTER: [number, number] = [55.751244, 37.618423];
-const DEFAULT_ZOOM = 11;
+import { usePropertiesContext } from '../context/PropertiesContext';
 
 const statusOptions = [
   { value: 'for_sale', label: 'В продаже' },
@@ -23,167 +19,154 @@ const typeOptions = [
   { value: 'land', label: 'Участок' },
 ];
 
-const MapSearchPage: React.FC = () => {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [mapBounds, setMapBounds] = useState<any>(null);
-  const [search, setSearch] = useState('');
-  const [minPrice, setMinPrice] = useState<number | undefined>();
-  const [maxPrice, setMaxPrice] = useState<number | undefined>();
-  const [status, setStatus] = useState<string | undefined>();
-  const [minArea, setMinArea] = useState<number | undefined>();
-  const [maxArea, setMaxArea] = useState<number | undefined>();
-  const [type, setType] = useState<string | undefined>();
-  const [rooms, setRooms] = useState<number | undefined>();
-  const [activeTab, setActiveTab] = useState<'active' | 'archive'>('active');
-  const [selectedPOITypes, setSelectedPOITypes] = useState<string[]>([]);
+export default function MapSearchPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const auth = React.useContext(AuthContext);
-  const [initialCenter, setInitialCenter] = useState<[number, number]>(DEFAULT_CENTER);
+  const {
+    filters,
+    updateFilters,
+    resetFilters,
+    bbox,
+    setBbox,
+    properties,
+    loading,
+    selectedId,
+    setSelectedId,
+    center,
+    setCenter
+  } = usePropertiesContext();
+  const [activeTab, setActiveTab] = React.useState<'active' | 'archive'>(
+    new URLSearchParams(location.search).get('tab') === 'archive' ? 'archive' : 'active'
+  );
+  const [show, setShow] = React.useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initializedRef = React.useRef(false);
+  const [delayedLoading, setDelayedLoading] = React.useState(false);
+  const loadingTimeout = React.useRef<any>(null);
+  const minShowTimeout = React.useRef<any>(null);
 
-  // Получение объектов по bbox и фильтрам
-  const fetchProperties = async (bounds: any) => {
-    setLoading(true);
-    const bbox = [
-      bounds.getWest ? bounds.getWest() : bounds[0],
-      bounds.getSouth ? bounds.getSouth() : bounds[1],
-      bounds.getEast ? bounds.getEast() : bounds[2],
-      bounds.getNorth ? bounds.getNorth() : bounds[3],
-    ].join(',');
-    let url = `/api/properties/map?bbox=${bbox}`;
-    if (search) url += `&search=${encodeURIComponent(search)}`;
-    if (minPrice) url += `&minPrice=${minPrice}`;
-    if (maxPrice) url += `&maxPrice=${maxPrice}`;
-    if (status) url += `&status=${status}`;
-    if (minArea) url += `&minArea=${minArea}`;
-    if (maxArea) url += `&maxArea=${maxArea}`;
-    if (type) url += `&type=${type}`;
-    if (rooms) url += `&rooms=${rooms}`;
-    if (activeTab) url += `&tab=${activeTab}`;
-    if (selectedPOITypes.length > 0) url += `&poi=${selectedPOITypes.join(',')}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    setProperties(data);
-    setLoading(false);
+  React.useEffect(() => {
+    setTimeout(() => setShow(true), 10); // для плавной анимации
+  }, []);
+
+  // Инициализация состояния из URL
+  React.useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+    const bboxParam = searchParams.get('bbox');
+    const selectedIdParam = searchParams.get('selectedId');
+    const filtersParam = searchParams.get('filters');
+    if (bboxParam) {
+      const arr = bboxParam.split(',').map(Number);
+      if (arr.length === 4 && arr.every(x => !isNaN(x))) setBbox(arr as any);
+    }
+    if (selectedIdParam) setSelectedId(Number(selectedIdParam));
+    if (filtersParam) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(filtersParam));
+        updateFilters(parsed);
+      } catch {}
+    }
+  }, [searchParams, setBbox, setSelectedId, updateFilters]);
+
+  // Сохранять состояние в URL при изменении
+  React.useEffect(() => {
+    const params: any = {};
+    if (bbox) params.bbox = bbox.join(',');
+    if (selectedId) params.selectedId = selectedId;
+    if (Object.keys(filters).length > 0) params.filters = encodeURIComponent(JSON.stringify(filters));
+    setSearchParams(params);
+  }, [bbox, selectedId, filters]);
+
+  // Фильтрация по табу (активные/архив)
+  const filteredProperties = properties.filter(p =>
+    activeTab === 'active' ? p.status !== 'sold' : p.status === 'sold'
+  );
+
+  // При изменении границ карты обновлять bbox
+  const handleBoundsChange = (bboxArr: [number, number, number, number]) => {
+    setBbox(bboxArr);
   };
 
-  // При изменении границ карты
-  const handleBoundsChange = (bounds: any) => {
-    setMapBounds(bounds);
-    fetchProperties(bounds);
-  };
-
-  // Первый рендер — получить объекты в дефолтных границах
-  useEffect(() => {
-    // Чтение query-параметров при первом рендере
-    const params = new URLSearchParams(location.search);
-    if (params.get('search')) setSearch(params.get('search') || '');
-    if (params.get('minPrice')) setMinPrice(Number(params.get('minPrice')));
-    if (params.get('maxPrice')) setMaxPrice(Number(params.get('maxPrice')));
-    if (params.get('status')) setStatus(params.get('status') || undefined);
-    if (params.get('minArea')) setMinArea(Number(params.get('minArea')));
-    if (params.get('maxArea')) setMaxArea(Number(params.get('maxArea')));
-    if (params.get('type')) setType(params.get('type') || undefined);
-    if (params.get('rooms')) setRooms(Number(params.get('rooms')));
-    if (params.get('tab')) setActiveTab(params.get('tab') as 'active' | 'archive');
-    const poiParam = params.get('poi');
-    if (poiParam) setSelectedPOITypes(poiParam.split(','));
-    
-    // Определение города для центрирования карты
-    const determineCity = async () => {
-      // Если нет фильтров — определяем город
-      if (!params.get('search') && !params.get('minPrice') && !params.get('maxPrice') && !params.get('status') && !params.get('minArea') && !params.get('maxArea') && !params.get('type') && !params.get('rooms')) {
-        // Сначала пытаемся определить по IP
-        let city = await getCityByIP();
-        
-        // Если по IP не получилось — берем из профиля пользователя
-        if (!city && auth?.user?.city) {
-          city = auth.user.city;
-        }
-        
-        // Если город найден — геокодируем и центрируем карту
-        if (city) {
-          const coords = await geocodeAddress(city);
-          if (coords) {
-            setInitialCenter([coords.lat, coords.lng]);
-          }
+  React.useEffect(() => {
+    if (loading) {
+      // Показываем спиннер только если загрузка дольше 250мс
+      loadingTimeout.current = setTimeout(() => {
+        setDelayedLoading(true);
+        // После появления держим минимум 400мс
+        minShowTimeout.current = setTimeout(() => {}, 400);
+      }, 250);
+    } else {
+      if (loadingTimeout.current) clearTimeout(loadingTimeout.current);
+      if (delayedLoading) {
+        // Если спиннер уже показан, держим его минимум 400мс
+        if (minShowTimeout.current) {
+          setTimeout(() => setDelayedLoading(false), 400);
+          clearTimeout(minShowTimeout.current);
+        } else {
+          setDelayedLoading(false);
         }
       }
+    }
+    return () => {
+      if (loadingTimeout.current) clearTimeout(loadingTimeout.current);
+      if (minShowTimeout.current) clearTimeout(minShowTimeout.current);
     };
-    
-    determineCity();
-    
-    handleBoundsChange({
-      getWest: () => initialCenter[1] - 0.2,
-      getSouth: () => initialCenter[0] - 0.2,
-      getEast: () => initialCenter[1] + 0.2,
-      getNorth: () => initialCenter[0] + 0.2,
-    });
-    // eslint-disable-next-line
-  }, [location.search]);
-
-  // Обновлять список при изменении фильтров
-  useEffect(() => {
-    if (mapBounds) fetchProperties(mapBounds);
-    // eslint-disable-next-line
-  }, [search, minPrice, maxPrice, status, minArea, maxArea, type, rooms, activeTab, selectedPOITypes]);
+  }, [loading]);
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 80px)', position: 'relative' }}>
-      {/* Кнопка закрытия */}
-      <Button
-        type="text"
-        icon={<CloseOutlined style={{ fontSize: 28 }} />}
-        onClick={() => navigate(-1)}
-        style={{ position: 'absolute', top: 24, right: 24, zIndex: 1000, background: '#fff', borderRadius: '50%', boxShadow: '0 2px 8px rgba(40,60,90,0.10)' }}
-        aria-label="Закрыть карту"
-      />
+    <div className={`big-map-page${show ? ' big-map-page--show' : ''}`} style={{ display: 'flex', height: 'calc(100vh - 80px)', position: 'relative', transition: 'background 0.5s' }}>
       {/* Список объектов слева */}
-      <div style={{ width: 420, overflowY: 'auto', background: '#fff', borderRight: '1px solid #eee', padding: 18, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ width: 420, overflowY: 'auto', background: '#fff', borderRight: '1px solid #eee', padding: 18, display: 'flex', flexDirection: 'column', transition: 'transform 0.5s', transform: show ? 'translateX(0)' : 'translateX(-100%)', opacity: show ? 1 : 0 }}>
         {/* Фильтры */}
         <div style={{ marginBottom: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <Input.Search
             placeholder="Поиск по адресу или названию..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            onSearch={() => mapBounds && fetchProperties(mapBounds)}
+            value={filters.search || ''}
+            onChange={e => updateFilters({ search: e.target.value })}
             allowClear
           />
           <div style={{ display: 'flex', gap: 8 }}>
-            <InputNumber placeholder="Цена от" min={0} value={minPrice} onChange={v => setMinPrice(v === null ? undefined : v)} style={{ width: 100 }} />
-            <InputNumber placeholder="до" min={0} value={maxPrice} onChange={v => setMaxPrice(v === null ? undefined : v)} style={{ width: 100 }} />
-            <InputNumber placeholder="Площадь от" min={0} value={minArea} onChange={v => setMinArea(v === null ? undefined : v)} style={{ width: 100 }} />
-            <InputNumber placeholder="до" min={0} value={maxArea} onChange={v => setMaxArea(v === null ? undefined : v)} style={{ width: 100 }} />
+            <InputNumber placeholder="Цена от" min={0} value={filters.minPrice} onChange={v => updateFilters({ minPrice: v === null ? undefined : v })} style={{ width: 100 }} />
+            <InputNumber placeholder="до" min={0} value={filters.maxPrice} onChange={v => updateFilters({ maxPrice: v === null ? undefined : v })} style={{ width: 100 }} />
+            <InputNumber placeholder="Площадь от" min={0} value={filters.minArea} onChange={v => updateFilters({ minArea: v === null ? undefined : v })} style={{ width: 100 }} />
+            <InputNumber placeholder="до" min={0} value={filters.maxArea} onChange={v => updateFilters({ maxArea: v === null ? undefined : v })} style={{ width: 100 }} />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <Select
               placeholder="Статус"
               allowClear
-              value={status}
-              onChange={setStatus}
+              value={filters.status}
+              onChange={v => updateFilters({ status: v })}
               options={statusOptions}
               style={{ width: 120 }}
             />
             <Select
               placeholder="Тип"
               allowClear
-              value={type}
-              onChange={setType}
+              value={filters.type}
+              onChange={v => updateFilters({ type: v })}
               options={typeOptions}
               style={{ width: 120 }}
             />
           </div>
+          <Button onClick={resetFilters} style={{ borderRadius: 8, fontWeight: 500, marginTop: 8 }}>Сбросить</Button>
         </div>
         {/* Список объектов */}
-        {loading ? <Spin /> : (
+        {delayedLoading ? <Spin /> : (
           <List
-            dataSource={properties}
+            dataSource={filteredProperties}
             renderItem={item => (
               <Card
                 key={item.id}
-                style={{ marginBottom: 12, cursor: 'pointer', border: selectedId === item.id ? '2px solid #1890ff' : undefined }}
+                style={{
+                  marginBottom: 12,
+                  cursor: 'pointer',
+                  border: selectedId === item.id ? '2px solid #1890ff' : undefined,
+                  boxShadow: selectedId === item.id ? '0 0 0 4px #e6f7ff, 0 2px 8px rgba(40,60,90,0.10)' : undefined,
+                  transition: 'border 0.3s, box-shadow 0.3s',
+                }}
                 onClick={() => setSelectedId(item.id)}
               >
                 <div style={{ fontWeight: 600 }}>{item.title}</div>
@@ -195,18 +178,39 @@ const MapSearchPage: React.FC = () => {
         )}
       </div>
       {/* Карта */}
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, transition: 'all 0.5s', opacity: show ? 1 : 0, position: 'relative' }}>
+        {/* Кнопка возврата теперь на самой карте */}
+        <Button
+          type="default"
+          icon={<ArrowLeftOutlined style={{ fontSize: 22 }} />}
+          onClick={() => navigate('/properties')}
+          style={{ position: 'absolute', top: 24, right: 24, zIndex: 1000, background: '#fff', borderRadius: '50%', boxShadow: '0 2px 8px rgba(40,60,90,0.10)', width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          aria-label="Вернуться к списку"
+        />
+        {/* Спиннер только на карте */}
+        {delayedLoading && (
+          <div style={{ position: 'absolute', left: '50%', top: '50%', zIndex: 1001, transform: 'translate(-50%, -50%)' }}>
+            <Spin size="large" />
+          </div>
+        )}
         <UniversalMapYandex
-          properties={properties}
+          properties={filteredProperties}
           selectedId={selectedId}
           onSelect={setSelectedId}
-          initialCenter={initialCenter}
-          initialZoom={DEFAULT_ZOOM}
+          initialCenter={center}
+          initialZoom={12}
+          onBoundsChange={handleBoundsChange}
           style={{ height: '100%', width: '100%' }}
         />
       </div>
+      <style>{`
+        .big-map-page {
+          background: #f8fafc;
+        }
+        .big-map-page--show {
+          background: #e9f0fb;
+        }
+      `}</style>
     </div>
   );
-};
-
-export default MapSearchPage; 
+} 

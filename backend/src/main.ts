@@ -1,3 +1,4 @@
+console.log('=== BACKEND STARTED ===');
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
@@ -16,6 +17,8 @@ async function bootstrap() {
   });
 
   app.useGlobalPipes(new ValidationPipe());
+
+  app.setGlobalPrefix('api'); // Глобальный префикс для всех роутов
 
   // Настройка статических файлов для раздачи загруженных изображений
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {

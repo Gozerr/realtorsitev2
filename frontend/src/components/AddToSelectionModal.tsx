@@ -52,7 +52,7 @@ const AddToSelectionModal: React.FC<AddToSelectionModalProps> = ({ open, propert
   };
 
   return (
-    <Modal open={open} onCancel={onClose} footer={null} title={createOnly ? 'Создать подборку' : 'Добавить в подборку'} destroyOnClose>
+    <Modal open={open} onCancel={onClose} footer={null} title={createOnly ? 'Создать подборку' : 'Добавить в подборку'} destroyOnHidden>
       {!createOnly && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ marginBottom: 8, fontWeight: 500 }}>Выберите подборку</div>

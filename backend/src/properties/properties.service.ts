@@ -183,7 +183,7 @@ export class PropertiesService {
     return saved;
   }
 
-  // Поиск объектов по bbox (карта)
+  // Поиск объектов по bbox (карта) с лимитом и пагинацией
   async findByBoundingBox(sw_lng: number, sw_lat: number, ne_lng: number, ne_lat: number, filters: any): Promise<Property[]> {
     const qb = this.propertiesRepository.createQueryBuilder('property')
       .leftJoinAndSelect('property.agent', 'agent')
@@ -199,7 +199,18 @@ export class PropertiesService {
     if (filters.maxPrice) {
       qb.andWhere('property.price <= :maxPrice', { maxPrice: Number(filters.maxPrice) });
     }
+    // Лимит и пагинация
+    const limit = filters.limit ? Math.min(Number(filters.limit), 1000) : 500;
+    const offset = filters.offset ? Number(filters.offset) : 0;
+    qb.take(limit).skip(offset);
     // Можно добавить другие фильтры
     return qb.getMany();
+  }
+
+  async findAll(): Promise<Property[]> {
+    return this.propertiesRepository.find({
+      order: { createdAt: 'DESC' },
+      relations: ['agent'],
+    });
   }
 }

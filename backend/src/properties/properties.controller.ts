@@ -3,12 +3,12 @@ import {
   Get,
   Post,
   Body,
-  UseGuards,
   Request,
   Param,
   NotFoundException,
   Patch,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { PropertiesService } from './properties.service';
 import { CreatePropertyDto } from './dto/create-property.dto';
@@ -29,51 +29,55 @@ export class PropertiesController {
     return this.propertiesService.findAllRecent();
   }
 
-  @Get(':id')
-  async findOne(@Param('id') id: string) {
-    const property = await this.propertiesService.findOne(+id);
-    if (!property) {
-      throw new NotFoundException('Объект недвижимости не найден');
-    }
-    return property;
+  @Get('all-photos')
+  async getAllPhotos() {
+    return this.propertiesService.getAllPhotos();
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Get('map')
+  async getPropertiesByMap(@Query('bbox') bbox: string, @Query() query: any) {
+    // bbox: 'sw_lng,sw_lat,ne_lng,ne_lat'
+    console.log('RAW bbox:', bbox);
+    const [sw_lng, sw_lat, ne_lng, ne_lat] = bbox.split(',').map(Number);
+    console.log('PARSED bbox:', [sw_lng, sw_lat, ne_lng, ne_lat]);
+    if ([sw_lng, sw_lat, ne_lng, ne_lat].some(x => isNaN(x))) {
+      throw new BadRequestException('Некорректные координаты bbox');
+    }
+    // Можно добавить фильтры (цена, статус и т.д.)
+    const { limit, offset, ...filters } = query;
+    return this.propertiesService.findByBoundingBox(sw_lng, sw_lat, ne_lng, ne_lat, { ...filters, limit, offset });
+  }
+
   @Get()
   async getProperties(@Query('agentId') agentId?: string) {
     if (agentId) {
       return this.propertiesService.findAllForAgent(Number(agentId));
     }
-    return this.propertiesService.findAllRecent();
+    return this.propertiesService.findAll();
   }
 
-  @UseGuards(JwtAuthGuard)
   @Post()
   create(@Body() createPropertyDto: CreatePropertyDto, @Request() req) {
     const agentId = req.user.userId;
     return this.propertiesService.create(createPropertyDto, agentId);
   }
 
-  // Новый эндпоинт для получения всех фото всех объектов
-  @Get('all-photos')
-  async getAllPhotos() {
-    return this.propertiesService.getAllPhotos();
-  }
-
-  @UseGuards(JwtAuthGuard)
   @Patch(':id/status')
   async updateStatus(@Param('id') id: string, @Body() body: { status: PropertyStatus }, @Request() req) {
     const userId = req.user.userId;
     return this.propertiesService.updateStatus(+id, body.status, userId);
   }
 
-  // Новый эндпоинт для поиска по карте (bbox)
-  @Get('map')
-  async getPropertiesByMap(@Query('bbox') bbox: string, @Query() query: any) {
-    // bbox: 'sw_lng,sw_lat,ne_lng,ne_lat'
-    if (!bbox) throw new NotFoundException('Не переданы границы карты (bbox)');
-    const [sw_lng, sw_lat, ne_lng, ne_lat] = bbox.split(',').map(Number);
-    // Можно добавить фильтры (цена, статус и т.д.)
-    return this.propertiesService.findByBoundingBox(sw_lng, sw_lat, ne_lng, ne_lat, query);
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    const numId = Number(id);
+    if (isNaN(numId)) {
+      throw new BadRequestException('Некорректный id объекта');
+    }
+    const property = await this.propertiesService.findOne(numId);
+    if (!property) {
+      throw new NotFoundException('Объект недвижимости не найден');
+    }
+    return property;
   }
 }

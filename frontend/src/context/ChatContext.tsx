@@ -49,7 +49,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       setSocket(newSocket);
       
-      api.get('/chat/conversations').then(response => {
+      api.get('/api/chat/conversations').then(response => {
         setConversations(response.data);
       });
 

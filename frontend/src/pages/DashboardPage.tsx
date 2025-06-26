@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { getRecentProperties, createProperty, getStatistics } from '../services/property.service';
+import { getRecentProperties, createProperty, getStatistics, getAllProperties } from '../services/property.service';
 import { Property, CreatePropertyData } from '../types';
 import CreatePropertyForm from '../components/CreatePropertyForm';
 import PropertyCard from '../components/PropertyCard';
@@ -36,10 +36,10 @@ const DashboardPage = () => {
     setError('');
     try {
       const [propertiesData, statsData] = await Promise.all([
-        getRecentProperties(),
+        getAllProperties(),
         getStatistics(),
       ]);
-      setProperties(propertiesData);
+      setProperties(propertiesData.slice(0, 20));
       setStats(statsData);
     } catch (err) {
       setError('Failed to fetch dashboard data.');
@@ -374,7 +374,7 @@ const DashboardPage = () => {
               {properties.length > 0 ? (
                 properties.map(property => (
                   <Col xs={24} sm={12} md={8} lg={8} key={property.id}>
-                    <PropertyCard property={property} />
+                    <PropertyCard property={property} mode="compact" />
                   </Col>
                 ))
               ) : (
