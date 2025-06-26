@@ -19,6 +19,10 @@ import { Message } from './chat/message.entity';
 import { Notification } from './notifications/notification.entity';
 import { UserNotificationSettings } from './notifications/user-notification-settings.entity';
 import { EducationEvent } from './education/education-event.entity';
+import { Selection } from './selections/selection.entity';
+import { SelectionsModule } from './selections/selections.module';
+import { CalendarModule } from './calendar/calendar.module';
+import { CalendarEvent } from './calendar/calendar-event.entity';
 
 @Module({
   imports: [
@@ -35,6 +39,8 @@ import { EducationEvent } from './education/education-event.entity';
         Notification,
         UserNotificationSettings,
         EducationEvent,
+        Selection,
+        CalendarEvent
       ],
       synchronize: false,
     }),
@@ -46,6 +52,8 @@ import { EducationEvent } from './education/education-event.entity';
     ChatModule,
     NotificationsModule,
     EducationModule,
+    SelectionsModule,
+    CalendarModule,
   ],
   controllers: [AppController],
   providers: [AppService],

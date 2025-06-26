@@ -184,9 +184,18 @@ export class PropertiesService {
   }
 
   // Поиск объектов по bbox (карта) с лимитом и пагинацией
-  async findByBoundingBox(sw_lng: number, sw_lat: number, ne_lng: number, ne_lat: number, filters: any): Promise<Property[]> {
+  async findByBoundingBox(sw_lng: number, sw_lat: number, ne_lng: number, ne_lat: number, filters: any): Promise<any[]> {
     const qb = this.propertiesRepository.createQueryBuilder('property')
-      .leftJoinAndSelect('property.agent', 'agent')
+      .select([
+        'property.id',
+        'property.title',
+        'property.price',
+        'property.address',
+        'property.photos',
+        'property.lat',
+        'property.lng',
+        'property.status',
+      ])
       .where('property.lat BETWEEN :sw_lat AND :ne_lat', { sw_lat, ne_lat })
       .andWhere('property.lng BETWEEN :sw_lng AND :ne_lng', { sw_lng, ne_lng });
     // Фильтры (пример: статус, цена)
@@ -200,11 +209,15 @@ export class PropertiesService {
       qb.andWhere('property.price <= :maxPrice', { maxPrice: Number(filters.maxPrice) });
     }
     // Лимит и пагинация
-    const limit = filters.limit ? Math.min(Number(filters.limit), 1000) : 500;
+    const limit = filters.limit ? Math.min(Number(filters.limit), 1000) : 200;
     const offset = filters.offset ? Number(filters.offset) : 0;
     qb.take(limit).skip(offset);
-    // Можно добавить другие фильтры
-    return qb.getMany();
+    const results = await qb.getMany();
+    // Оставляем только первую фотографию
+    return results.map(p => ({
+      ...p,
+      photos: Array.isArray(p.photos) && p.photos.length > 0 ? [p.photos[0]] : [],
+    }));
   }
 
   async findAll(): Promise<Property[]> {

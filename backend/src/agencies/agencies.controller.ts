@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Param } from '@nestjs/common';
 import { AgenciesService } from './agencies.service';
 import { CreateAgencyDto } from './dto/create-agency.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -11,5 +11,11 @@ export class AgenciesController {
   @Post()
   create(@Body() createAgencyDto: CreateAgencyDto) {
     return this.agenciesService.create(createAgencyDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.agenciesService.findOne(Number(id));
   }
 }

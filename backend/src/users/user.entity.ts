@@ -58,4 +58,7 @@ export class User {
 
   @OneToMany(() => Client, client => client.agent)
   clients: Client[];
+
+  @Column({ nullable: true })
+  telegramId: string;
 } 

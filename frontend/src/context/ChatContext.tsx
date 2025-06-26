@@ -69,7 +69,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setMessages([]);
     if (socket && conversation) {
       socket.emit('joinRoom', conversation.id);
-      api.get(`/chat/messages/${conversation.id}`).then(res => {
+      api.get(`/api/chat/messages/${conversation.id}`).then(res => {
         setMessages(res.data);
       });
     }

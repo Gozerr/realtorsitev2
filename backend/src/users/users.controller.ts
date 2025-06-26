@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Request, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Request, Patch, Param } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { User } from './user.entity';
@@ -15,8 +15,9 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
-  getProfile(@Request() req) {
-    return req.user;
+  async getProfile(@Request() req) {
+    const userId = req.user.userId;
+    return this.usersService.findOneById(userId);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -31,5 +32,21 @@ export class UsersController {
     
     console.log('Extracted userId:', userId);
     return this.usersService.updateProfile(userId, updateData);
+  }
+
+  @Post('import')
+  async importUsers(@Body() users: Array<any>) {
+    // users: [{ email, firstName, lastName, phone, photo, agencyId, agencyName, ... }]
+    return this.usersService.importUsers(users);
+  }
+
+  @Post('import/async')
+  async importUsersAsync(@Body() users: Array<any>) {
+    return this.usersService.importUsersAsync(users);
+  }
+
+  @Get('import/status/:taskId')
+  getImportStatus(@Param('taskId') taskId: string) {
+    return this.usersService.getImportStatus(taskId);
   }
 }

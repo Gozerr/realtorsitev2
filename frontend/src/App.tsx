@@ -19,6 +19,7 @@ import { AuthContext } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import MapSearchPage from './pages/MapSearchPage';
 import { PropertiesProvider } from './context/PropertiesContext';
+import CalendarPage from './pages/CalendarPage';
 
 // ProtectedRoute: только для авторизованных
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -66,6 +67,7 @@ function App() {
                     <Route path="profile" element={<ProfilePage />} />
                     <Route path="settings" element={<SettingsPage />} />
                     <Route path="map" element={<MapSearchPage />} />
+                    <Route path="calendar" element={<CalendarPage />} />
                   </Route>
                 </Routes>
               </Router>

@@ -2,27 +2,11 @@ import React, { useState, useContext, useEffect } from 'react';
 import { Tabs, Input, Button, Avatar, Row, Col, Typography, Upload, message, Card, Select } from 'antd';
 import { UserOutlined, HomeOutlined, FileTextOutlined, CreditCardOutlined, UploadOutlined } from '@ant-design/icons';
 import { AuthContext } from '../context/AuthContext';
-import { updateProfile } from '../services/auth.service';
+import { updateProfile, getProfile } from '../services/auth.service';
 import { uploadAvatar } from '../services/upload.service';
+import InputMask from 'react-input-mask';
 
 const { Title, Text } = Typography;
-
-export const userMock = {
-  firstName: 'Иван',
-  lastName: 'Иванов',
-  phone: '+7 (999) 123-45-67',
-  email: 'ivanov@realty.ru',
-  about: 'Риэлтор с 5-летним опытом работы. Специализируюсь на продаже жилой недвижимости в центральном районе.',
-};
-
-export const agencyMock = {
-  name: 'Лидер Недвижимость',
-  address: 'г. Москва, ул. Тверская, 10',
-  phone: '+7 (495) 123-45-67',
-  email: 'info@lider-realty.ru',
-  website: 'lider-realty.ru',
-  description: 'Агентство недвижимости "Лидер" работает на рынке с 2010 года. Мы специализируемся на продаже и аренде жилой и коммерческой недвижимости.',
-};
 
 const subscriptionMock = {
   plan: 'Бизнес',
@@ -46,133 +30,15 @@ const subscriptionMock = {
 const offerText = `
 1. Общие положения\n1.1. Настоящий документ является публичной офертой (далее — «Оферта») ООО «РиэлтиПро» (далее — «Компания») и содержит все существенные условия использования программного обеспечения «РиэлтиПро» (далее — «Сервис»).\n1.2. В соответствии с пунктом 2 статьи 437 Гражданского Кодекса Российской Федерации (ГК РФ), в случае принятия изложенных ниже условий и оплаты услуг юридическое или физическое лицо, производящее акцепт этой оферты, становится Пользователем (в соответствии с пунктом 3 статьи 438 ГК РФ акцепт оферты равносилен заключению договора на условиях, изложенных в оферте).\n\n2. Предмет оферты\n2.1. Предметом настоящей Оферты является предоставление Пользователю доступа к использованию Сервиса на условиях, изложенных в настоящей Оферте.\n2.2. Сервис представляет собой программное обеспечение для автоматизации работы агентств недвижимости и риэлторов.\n\n3. Условия использования\n3.1. Пользователь обязуется использовать Сервис только в соответствии с условиями настоящей Оферты и не нарушать права других пользователей.\n3.2. Пользователь несет ответственность за сохранность своих учетных данных и за все действия, совершенные с использованием его учетной записи.\n\n4. Стоимость услуг и порядок расчетов\n...`;
 
-const profileMock = {
-  name: 'Медведева Мария Александровна',
-  photo: 'https://olimp.vtcrm.ru/uploads/User_photos/phpXxFFcI.jpeg',
-  phone: '+7(930)137-50-17',
-  email: '9301375017R@gmail.com',
-  telegram: 'https://t.me/+79301375017',
-  position: 'Агент Ярославля',
-  birthdate: '08.02.95',
-};
-
-const tabItems = [
-  {
-    key: 'profile',
-    label: <span><UserOutlined /> Мой профиль</span>,
-    children: (
-      <div style={{ width: '100%', marginTop: 24 }}>
-        <Title level={4}>Личная информация</Title>
-        <Text type="secondary">Ваши данные из CRM</Text>
-        <Row gutter={24} style={{ marginTop: 24 }}>
-          <Col span={4} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Avatar size={80} src={profileMock.photo} />
-          </Col>
-          <Col span={20}>
-            <Title level={5} style={{ margin: 0 }}>{profileMock.name}</Title>
-            <Text type="secondary">{profileMock.position}</Text>
-            <Row gutter={16} style={{ marginTop: 16 }}>
-              <Col span={12}><Input value={profileMock.phone} disabled addonBefore="Телефон" /></Col>
-              <Col span={12}><Input value={profileMock.email} disabled addonBefore="Email" /></Col>
-            </Row>
-            <Row gutter={16} style={{ marginTop: 12 }}>
-              <Col span={12}><Input value={profileMock.telegram} disabled addonBefore="Telegram" /></Col>
-              <Col span={12}><Input value={profileMock.birthdate} disabled addonBefore="Дата рождения" /></Col>
-            </Row>
-          </Col>
-        </Row>
-        <Button type="primary" style={{ marginTop: 24 }}>Редактировать</Button>
-      </div>
-    ),
-  },
-  {
-    key: 'agency',
-    label: <span><HomeOutlined /> Агентство</span>,
-    children: (
-      <div style={{ width: '100%', marginTop: 24 }}>
-        <Title level={4}>Информация об агентстве</Title>
-        <Text type="secondary">Данные вашего агентства недвижимости</Text>
-        <Row gutter={24} style={{ marginTop: 24 }}>
-          <Col span={4} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Avatar size={80} icon={<HomeOutlined />} />
-          </Col>
-          <Col span={20}>
-            <Row gutter={16}>
-              <Col span={12}><Input value={agencyMock.name} disabled addonBefore="Название" /></Col>
-              <Col span={12}><Input value={agencyMock.address} disabled addonBefore="Адрес" /></Col>
-            </Row>
-            <Row gutter={16} style={{ marginTop: 12 }}>
-              <Col span={12}><Input value={agencyMock.phone} disabled addonBefore="Телефон" /></Col>
-              <Col span={12}><Input value={agencyMock.email} disabled addonBefore="Email" /></Col>
-            </Row>
-            <Row gutter={16} style={{ marginTop: 12 }}>
-              <Col span={12}><Input value={agencyMock.website} disabled addonBefore="Веб-сайт" /></Col>
-            </Row>
-            <Row style={{ marginTop: 12 }}>
-              <Col span={24}>
-                <div style={{ marginBottom: 4, color: '#888' }}>Описание</div>
-                <Input.TextArea value={agencyMock.description} disabled rows={2} />
-              </Col>
-            </Row>
-          </Col>
-        </Row>
-        <Button type="primary" style={{ marginTop: 24 }}>Редактировать</Button>
-      </div>
-    ),
-  },
-  {
-    key: 'subscription',
-    label: <span><CreditCardOutlined /> Подписка</span>,
-    children: (
-      <div style={{ width: '100%', marginTop: 24 }}>
-        <Title level={4}>Управление подпиской</Title>
-        <Text type="secondary">Информация о вашей текущей подписке и доступных планах</Text>
-        <div style={{ marginTop: 24, marginBottom: 16 }}>
-          <b>Текущий план: {subscriptionMock.plan}</b> <span style={{ color: '#888' }}>{subscriptionMock.price}</span><br />
-          Следующее списание: {subscriptionMock.nextPayment}
-        </div>
-        <ul>
-          {subscriptionMock.features.map((f, i) => (
-            <li key={i} style={{ color: f.ok ? '#4caf50' : '#f44336' }}>{f.ok ? '✓' : '✗'} {f.text}</li>
-          ))}
-        </ul>
-        <div style={{ display: 'flex', gap: 24, marginTop: 24 }}>
-          {subscriptionMock.plans.map((plan, i) => (
-            <div key={i} style={{ border: plan.current ? '2px solid #296fff' : '1px solid #eee', minWidth: 220, flex: 1, padding: 16, borderRadius: 12 }}>
-              <b>{plan.name}</b><br />
-              <span style={{ color: '#888' }}>{plan.price}</span>
-              <ul style={{ marginTop: 8 }}>
-                {plan.features.map((f, j) => (
-                  <li key={j} style={{ color: f.includes('нет') ? '#f44336' : '#222' }}>{f}</li>
-                ))}
-              </ul>
-              {plan.current ? <Button type="primary" disabled style={{ marginTop: 8 }}>Текущий план</Button> : <Button style={{ marginTop: 8 }}>Выбрать план</Button>}
-            </div>
-          ))}
-        </div>
-      </div>
-    ),
-  },
-  {
-    key: 'offer',
-    label: <span><FileTextOutlined /> Оферта</span>,
-    children: (
-      <div style={{ width: '100%', marginTop: 24 }}>
-        <Title level={4}>Договор оферты</Title>
-        <Text type="secondary">Ознакомьтесь с условиями использования платформы</Text>
-        <pre style={{ marginTop: 24, whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 16 }}>{offerText}</pre>
-      </div>
-    ),
-  },
-];
-
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('profile');
   const [uploading, setUploading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editValues, setEditValues] = useState({ firstName: '', lastName: '', email: '', role: '' });
+  const [editValues, setEditValues] = useState({ firstName: '', lastName: '', email: '', phone: '', role: '' });
   const authContext = useContext(AuthContext);
   const user = authContext?.user;
+  const [agency, setAgency] = useState<{ id: number; name: string } | null>(null);
+  const [avatarHover, setAvatarHover] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -180,13 +46,31 @@ export default function ProfilePage() {
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         email: user.email || '',
+        phone: user.phone || '',
         role: user.role || '',
       });
     }
   }, [user]);
 
+  useEffect(() => {
+    if (user?.agencyId && authContext?.token) {
+      fetch(`/api/agencies/${user.agencyId}`, {
+        headers: { Authorization: `Bearer ${authContext.token}` },
+      })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => setAgency(data))
+        .catch(() => setAgency(null));
+    } else {
+      setAgency(null);
+    }
+  }, [user?.agencyId, authContext?.token]);
+
+  if (!user) {
+    return <div style={{ padding: 32 }}>Нет данных о пользователе</div>;
+  }
+
   const handleAvatarUpload = async (file: File) => {
-    if (!user) return false;
+    if (!user || !authContext?.token) return false;
     setUploading(true);
     try {
       const isLt2M = file.size / 1024 / 1024 < 2;
@@ -200,8 +84,16 @@ export default function ProfilePage() {
         return false;
       }
       const photoUrl = await uploadAvatar(file);
-      const updatedUser = await updateProfile({ photo: photoUrl });
-      authContext?.setAuthData(authContext.token, updatedUser);
+      await updateProfile({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        photo: photoUrl,
+      });
+      const freshProfile = await getProfile(authContext.token);
+      authContext.setAuthData(authContext.token, freshProfile);
+      localStorage.setItem('user', JSON.stringify(freshProfile));
       message.success('Аватар успешно обновлен!');
     } catch (error) {
       console.error('Upload error:', error);
@@ -219,6 +111,7 @@ export default function ProfilePage() {
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         email: user.email || '',
+        phone: user.phone || '',
         role: user.role || '',
       });
     }
@@ -228,12 +121,25 @@ export default function ProfilePage() {
     setEditValues(prev => ({ ...prev, [field]: value }));
   };
   const handleSave = async () => {
+    // Валидация телефона
+    const phone = editValues.phone.replace(/[^\d]/g, '');
+    if (editValues.phone && (phone.length !== 11 || editValues.phone.includes('_'))) {
+      message.error('Введите корректный номер телефона в формате +7 (XXX) XXX-XX-XX');
+      return;
+    }
     try {
-      const updatedUser = await updateProfile({
-        ...editValues,
-        role: editValues.role as 'agent' | 'director',
+      await updateProfile({
+        firstName: editValues.firstName,
+        lastName: editValues.lastName,
+        email: editValues.email,
+        phone: editValues.phone,
+        photo: user?.photo,
       });
-      authContext?.setAuthData(authContext.token, updatedUser);
+      if (authContext?.token) {
+        const freshProfile = await getProfile(authContext.token);
+        authContext.setAuthData(authContext.token, freshProfile);
+        localStorage.setItem('user', JSON.stringify(freshProfile));
+      }
       message.success('Профиль обновлен!');
       setIsEditing(false);
     } catch (error) {
@@ -241,184 +147,217 @@ export default function ProfilePage() {
     }
   };
 
-  const dynamicTabItems = tabItems.map(item => {
-    if (item.key === 'profile') {
-      return {
-        ...item,
-        children: (
-          <div style={{ width: '100%', marginTop: 24 }}>
-            <Card
-              style={{
-                width: '100%',
-                maxWidth: '100%',
-                borderRadius: 24,
-                boxShadow: '0 4px 32px #e6eaf1',
-                background: 'linear-gradient(135deg, #f7faff 60%, #e3f0ff 100%)',
-                padding: 32,
-                border: 'none',
-                marginBottom: 32,
-              }}
-              bodyStyle={{ padding: 0 }}
-            >
-              <Title level={3} style={{ marginBottom: 8, fontWeight: 700, letterSpacing: 0.5 }}>
-                Личная информация
-              </Title>
-              <Text type="secondary" style={{ fontSize: 16 }}>
-                Ваши данные из системы
-              </Text>
-              <Row gutter={32} style={{ marginTop: 32, alignItems: 'center' }}>
-                <Col span={4} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <Avatar 
-                    size={140} 
-                    src={user?.photo} 
-                    icon={<UserOutlined />} 
-                    style={{ 
-                      boxShadow: '0 2px 12px #b3c6e0', 
-                      marginBottom: 12, 
-                      borderRadius: 20, 
-                      width: 140, 
-                      height: 140, 
-                      objectFit: 'cover', 
-                    }} 
-                    shape="square"
-                  />
-                  <Upload
-                    name="avatar"
-                    showUploadList={false}
-                    beforeUpload={handleAvatarUpload}
-                    accept="image/*"
-                  >
-                    <Button 
-                      icon={<UploadOutlined />} 
-                      size="middle" 
-                      style={{ marginTop: 4, fontWeight: 500 }}
-                      loading={uploading}
-                    >
-                      Загрузить фото
-                    </Button>
-                  </Upload>
-                </Col>
-                <Col span={20}>
-                  <Title level={4} style={{ margin: 0, fontWeight: 600, fontSize: 26 }}>
-                    {isEditing ? (
-                      <Input
-                        value={editValues.firstName}
-                        onChange={e => handleChange('firstName', e.target.value)}
-                        style={{ fontSize: 22, fontWeight: 600, width: 180, marginRight: 8 }}
-                        placeholder="Имя"
-                      />
-                    ) : user?.firstName}{' '}
-                    {isEditing ? (
-                      <Input
-                        value={editValues.lastName}
-                        onChange={e => handleChange('lastName', e.target.value)}
-                        style={{ fontSize: 22, fontWeight: 600, width: 180 }}
-                        placeholder="Фамилия"
-                      />
-                    ) : user?.lastName}
-                  </Title>
-                  <Text type="secondary" style={{ fontSize: 18, fontWeight: 500 }}>
-                    {isEditing ? (
-                      <Select
-                        value={editValues.role}
-                        onChange={value => handleChange('role', value)}
-                        style={{ fontSize: 16, width: 180, marginRight: 8 }}
-                        options={[
-                          { value: 'agent', label: 'Агент' },
-                          { value: 'director', label: 'Директор' },
-                        ]}
-                      />
-                    ) : user?.role === 'director' ? 'Директор' : 'Агент'}
-                  </Text>
-                  <Row gutter={16} style={{ marginTop: 20 }}>
-                    <Col span={12}>
-                      <Input
-                        value={isEditing ? editValues.email : user?.email || ''}
-                        onChange={e => handleChange('email', e.target.value)}
-                        disabled={!isEditing}
-                        addonBefore="Email"
-                        size="large"
-                        style={{ fontSize: 16 }}
-                      />
-                    </Col>
-                    <Col span={12}>
-                      {isEditing ? (
-                        <Select
-                          value={editValues.role}
-                          onChange={value => handleChange('role', value)}
-                          disabled={!isEditing}
-                          style={{ fontSize: 16, width: '100%' }}
-                          options={[
-                            { value: 'agent', label: 'Агент' },
-                            { value: 'director', label: 'Директор' },
-                          ]}
-                        />
-                      ) : (
-                        <Input
-                          value={user?.role === 'director' ? 'Директор' : 'Агент'}
-                          disabled
-                          addonBefore="Роль"
-                          size="large"
-                          style={{ fontSize: 16 }}
-                        />
-                      )}
-                    </Col>
-                  </Row>
-                  <Row gutter={16} style={{ marginTop: 16 }}>
-                    <Col span={12}>
-                      <Input
-                        value={isEditing ? editValues.firstName : user?.firstName || ''}
-                        onChange={e => handleChange('firstName', e.target.value)}
-                        disabled={!isEditing}
-                        addonBefore="Имя"
-                        size="large"
-                        style={{ fontSize: 16 }}
-                      />
-                    </Col>
-                    <Col span={12}>
-                      <Input
-                        value={isEditing ? editValues.lastName : user?.lastName || ''}
-                        onChange={e => handleChange('lastName', e.target.value)}
-                        disabled={!isEditing}
-                        addonBefore="Фамилия"
-                        size="large"
-                        style={{ fontSize: 16 }}
-                      />
-                    </Col>
-                  </Row>
-                </Col>
-              </Row>
-              {isEditing ? (
-                <div style={{ marginTop: 32, display: 'flex', gap: 16 }}>
-                  <Button type="primary" onClick={handleSave} style={{ width: 160, height: 48, fontSize: 18, borderRadius: 12, fontWeight: 600 }}>
-                    Сохранить
-                  </Button>
-                  <Button onClick={handleCancel} style={{ width: 120, height: 48, fontSize: 18, borderRadius: 12, fontWeight: 600 }}>
-                    Отмена
-                  </Button>
-                </div>
-              ) : (
-                <Button type="primary" onClick={handleEdit} style={{ marginTop: 32, width: 240, height: 48, fontSize: 18, borderRadius: 12, fontWeight: 600 }}>
-                  Редактировать
-                </Button>
-              )}
-            </Card>
-          </div>
-        ),
-      };
-    }
-    return item;
-  });
-
   return (
     <div style={{ width: '100%', minHeight: '100vh' }}>
       <h1 style={{ marginBottom: 24 }}>Мой профиль</h1>
       <Tabs
         activeKey={activeTab}
         onChange={setActiveTab}
-        items={dynamicTabItems.filter(Boolean)}
         style={{ background: 'transparent' }}
-      />
+      >
+        <Tabs.TabPane
+          tab={<span><UserOutlined /> Мой профиль</span>}
+          key="profile"
+        >
+          <div style={{ width: '100%', marginTop: 24, display: 'flex', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: 32 }}>
+              <div style={{
+                width: 400,
+                background: 'linear-gradient(135deg, #f7faff 60%, #e3f0ff 100%)',
+                borderRadius: 32,
+                boxShadow: '0 4px 32px #e6eaf1',
+                padding: 40,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                transition: 'box-shadow 0.3s',
+              }}>
+                <div style={{ position: 'relative', marginBottom: 8 }}>
+                  <Upload
+                    showUploadList={false}
+                    beforeUpload={file => { handleAvatarUpload(file); return false; }}
+                    accept="image/*"
+                    disabled={uploading}
+                  >
+                    <div
+                      style={{ cursor: 'pointer', display: 'inline-block', position: 'relative' }}
+                      onMouseEnter={() => setAvatarHover(true)}
+                      onMouseLeave={() => setAvatarHover(false)}
+                    >
+                      <Avatar
+                        size={180}
+                        src={user?.photo || user?.avatar || undefined}
+                        style={{ borderRadius: 24, width: 180, height: 180, objectFit: 'cover', boxShadow: '0 4px 24px #b3c6e0', background: '#f5f7fa' }}
+                        shape="square"
+                      >
+                        {(!user?.photo && !user?.avatar && user?.firstName && user?.lastName) ? `${user.firstName[0]}${user.lastName[0]}` : null}
+                      </Avatar>
+                      <div style={{
+                        position: 'absolute',
+                        left: 0,
+                        bottom: 12,
+                        width: '100%',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        pointerEvents: 'none',
+                      }}>
+                        <span style={{
+                          background: 'rgba(44,62,80,0.85)',
+                          color: '#fff',
+                          fontSize: 15,
+                          fontWeight: 400,
+                          borderRadius: 12,
+                          padding: '4px 16px',
+                          opacity: avatarHover ? 1 : 0,
+                          transition: 'opacity 0.2s',
+                          boxShadow: '0 2px 8px #2222',
+                          pointerEvents: 'none',
+                        }}>
+                          Обновить фотографию
+                        </span>
+                      </div>
+                    </div>
+                  </Upload>
+                </div>
+                {isEditing ? (
+                  <>
+                    <Input
+                      value={editValues.firstName}
+                      onChange={e => handleChange('firstName', e.target.value)}
+                      placeholder="Имя"
+                      style={{ marginTop: 24, fontSize: 18, borderRadius: 10 }}
+                      size="large"
+                    />
+                    <Input
+                      value={editValues.lastName}
+                      onChange={e => handleChange('lastName', e.target.value)}
+                      placeholder="Фамилия"
+                      style={{ marginTop: 12, fontSize: 18, borderRadius: 10 }}
+                      size="large"
+                    />
+                    <InputMask
+                      mask="+7 (999) 999-99-99"
+                      maskChar={null}
+                      value={editValues.phone}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('phone', e.target.value)}
+                    >
+                      {(inputProps: any) => (
+                        <Input
+                          {...inputProps}
+                          placeholder="Телефон"
+                          style={{ marginTop: 12, fontSize: 18, borderRadius: 10 }}
+                          size="large"
+                        />
+                      )}
+                    </InputMask>
+                    <Input
+                      value={editValues.email}
+                      onChange={e => handleChange('email', e.target.value)}
+                      placeholder="Email"
+                      style={{ marginTop: 12, fontSize: 18, borderRadius: 10 }}
+                      size="large"
+                    />
+                    <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+                      <Button type="primary" onClick={handleSave} style={{ borderRadius: 10, fontWeight: 600 }}>Сохранить</Button>
+                      <Button onClick={handleCancel} style={{ borderRadius: 10 }}>Отмена</Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Title level={3} style={{ margin: '32px 0 8px 0', fontWeight: 700, letterSpacing: 0.5, textAlign: 'center' }}>
+                      {user?.firstName} {user?.lastName}
+                    </Title>
+                    <Text type="secondary" style={{ fontSize: 20, fontWeight: 500, marginBottom: 24, textAlign: 'center', display: 'block' }}>
+                      {user?.role === 'director' ? 'Директор' : 'Агент'}
+                    </Text>
+                    <div style={{ width: '100%', margin: '24px 0 0 0', textAlign: 'center' }}>
+                      <div style={{ fontSize: 20, fontWeight: 500, marginBottom: 8, color: '#222' }}>{user?.phone || <span style={{ color: '#bbb' }}>Телефон не указан</span>}</div>
+                      <div style={{ fontSize: 20, fontWeight: 500, marginBottom: 8, color: '#222' }}>{user?.email}</div>
+                    </div>
+                    <Button
+                      type="primary"
+                      icon={<UserOutlined />}
+                      style={{ marginTop: 32, minWidth: 220, height: 48, fontSize: 18, borderRadius: 14, fontWeight: 600, boxShadow: '0 2px 12px #b3c6e0', transition: 'box-shadow 0.3s', overflow: 'hidden', padding: '0 18px', whiteSpace: 'nowrap' }}
+                      onClick={handleEdit}
+                      onMouseOver={e => e.currentTarget.style.boxShadow = '0 4px 24px #296fff44'}
+                      onMouseOut={e => e.currentTarget.style.boxShadow = '0 2px 12px #b3c6e0'}
+                    >
+                      Редактировать профиль
+                    </Button>
+                  </>
+                )}
+              </div>
+              <div style={{
+                minWidth: 260,
+                maxWidth: 320,
+                background: '#fff',
+                borderRadius: 24,
+                boxShadow: '0 4px 24px #e6eaf1',
+                padding: 32,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                justifyContent: 'center',
+                marginLeft: 0,
+                marginTop: 0,
+                height: 'fit-content',
+              }}>
+                <Title level={4} style={{ color: '#296fff', marginBottom: 12 }}>Агентство</Title>
+                {agency ? (
+                  <>
+                    <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 8 }}>{agency.name}</div>
+                    <div style={{ color: '#888', fontSize: 16 }}>ID: {agency.id}</div>
+                  </>
+                ) : (
+                  <div style={{ color: '#888', fontSize: 16 }}>Нет данных об агентстве</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </Tabs.TabPane>
+        <Tabs.TabPane
+          tab={<span><CreditCardOutlined /> Подписка</span>}
+          key="subscription"
+        >
+          <div style={{ width: '100%', marginTop: 24 }}>
+            <Title level={4}>Управление подпиской</Title>
+            <Text type="secondary">Информация о вашей текущей подписке и доступных планах</Text>
+            <div style={{ marginTop: 24, marginBottom: 16 }}>
+              <b>Текущий план: {subscriptionMock.plan}</b> <span style={{ color: '#888' }}>{subscriptionMock.price}</span><br />
+              Следующее списание: {subscriptionMock.nextPayment}
+            </div>
+            <ul>
+              {subscriptionMock.features.map((f, i) => (
+                <li key={i} style={{ color: f.ok ? '#4caf50' : '#f44336' }}>{f.ok ? '✓' : '✗'} {f.text}</li>
+              ))}
+            </ul>
+            <div style={{ display: 'flex', gap: 24, marginTop: 24 }}>
+              {subscriptionMock.plans.map((plan, i) => (
+                <div key={i} style={{ border: plan.current ? '2px solid #296fff' : '1px solid #eee', minWidth: 220, flex: 1, padding: 16, borderRadius: 12 }}>
+                  <b>{plan.name}</b><br />
+                  <span style={{ color: '#888' }}>{plan.price}</span>
+                  <ul style={{ marginTop: 8 }}>
+                    {plan.features.map((f, j) => (
+                      <li key={j} style={{ color: f.includes('нет') ? '#f44336' : '#222' }}>{f}</li>
+                    ))}
+                  </ul>
+                  {plan.current ? <Button type="primary" disabled style={{ marginTop: 8 }}>Текущий план</Button> : <Button style={{ marginTop: 8 }}>Выбрать план</Button>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </Tabs.TabPane>
+        <Tabs.TabPane
+          tab={<span><FileTextOutlined /> Оферта</span>}
+          key="offer"
+        >
+          <div style={{ width: '100%', marginTop: 24 }}>
+            <Title level={4}>Договор оферты</Title>
+            <Text type="secondary">Ознакомьтесь с условиями использования платформы</Text>
+            <pre style={{ marginTop: 24, whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 16 }}>{offerText}</pre>
+          </div>
+        </Tabs.TabPane>
+      </Tabs>
     </div>
   );
 } 

@@ -1,10 +1,14 @@
 import React from 'react';
-import { List, Card, Spin, Input, Button, InputNumber, Select } from 'antd';
+import { List, Card, Spin, Input, Button, InputNumber, Select, Carousel } from 'antd';
 import UniversalMapYandex from '../components/UniversalMapYandex';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { CloseOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { CloseOutlined, ArrowLeftOutlined, PlusOutlined } from '@ant-design/icons';
 import { AuthContext } from '../context/AuthContext';
 import { usePropertiesContext } from '../context/PropertiesContext';
+import { FixedSizeList as VirtualList } from 'react-window';
+import { Skeleton } from 'antd';
+import { useState } from 'react';
+import AddToSelectionModal from '../components/AddToSelectionModal';
 
 const statusOptions = [
   { value: 'for_sale', label: 'В продаже' },
@@ -45,6 +49,8 @@ export default function MapSearchPage() {
   const [delayedLoading, setDelayedLoading] = React.useState(false);
   const loadingTimeout = React.useRef<any>(null);
   const minShowTimeout = React.useRef<any>(null);
+  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [addToSelectionId, setAddToSelectionId] = useState<number | null>(null);
 
   React.useEffect(() => {
     setTimeout(() => setShow(true), 10); // для плавной анимации
@@ -115,67 +121,129 @@ export default function MapSearchPage() {
     };
   }, [loading]);
 
+  // Определяем, показывать windowing или обычный список
+  const maxListCount = 300;
+  const isFullCity = !bbox || (bbox && Math.abs(bbox[2] - bbox[0]) > 0.5 && Math.abs(bbox[3] - bbox[1]) > 0.5); // bbox > ~0.5 градуса — весь город
+  const listToShow = isFullCity ? filteredProperties : filteredProperties.slice(0, maxListCount);
+  const tooMany = listToShow.length > maxListCount;
+
   return (
     <div className={`big-map-page${show ? ' big-map-page--show' : ''}`} style={{ display: 'flex', height: 'calc(100vh - 80px)', position: 'relative', transition: 'background 0.5s' }}>
       {/* Список объектов слева */}
       <div style={{ width: 420, overflowY: 'auto', background: '#fff', borderRight: '1px solid #eee', padding: 18, display: 'flex', flexDirection: 'column', transition: 'transform 0.5s', transform: show ? 'translateX(0)' : 'translateX(-100%)', opacity: show ? 1 : 0 }}>
         {/* Фильтры */}
-        <div style={{ marginBottom: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <Input.Search
-            placeholder="Поиск по адресу или названию..."
-            value={filters.search || ''}
-            onChange={e => updateFilters({ search: e.target.value })}
-            allowClear
-          />
-          <div style={{ display: 'flex', gap: 8 }}>
-            <InputNumber placeholder="Цена от" min={0} value={filters.minPrice} onChange={v => updateFilters({ minPrice: v === null ? undefined : v })} style={{ width: 100 }} />
-            <InputNumber placeholder="до" min={0} value={filters.maxPrice} onChange={v => updateFilters({ maxPrice: v === null ? undefined : v })} style={{ width: 100 }} />
-            <InputNumber placeholder="Площадь от" min={0} value={filters.minArea} onChange={v => updateFilters({ minArea: v === null ? undefined : v })} style={{ width: 100 }} />
-            <InputNumber placeholder="до" min={0} value={filters.maxArea} onChange={v => updateFilters({ maxArea: v === null ? undefined : v })} style={{ width: 100 }} />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: 340 }}>
+          <Button type="default" size="small" style={{ marginBottom: 8 }} onClick={() => setFiltersOpen(v => !v)}>
+            {filtersOpen ? 'Скрыть фильтры' : 'Показать фильтры'}
+          </Button>
+          <div style={{ transition: 'max-height 0.3s, opacity 0.3s', overflow: 'hidden', maxHeight: filtersOpen ? 400 : 0, opacity: filtersOpen ? 1 : 0 }}>
+            <div style={{ marginBottom: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <Input.Search
+                placeholder="Поиск по адресу или названию..."
+                value={filters.search || ''}
+                onChange={e => updateFilters({ search: e.target.value })}
+                allowClear
+              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <InputNumber placeholder="Цена от" min={0} value={filters.minPrice} onChange={v => updateFilters({ minPrice: v === null ? undefined : v })} style={{ width: 100 }} />
+                <InputNumber placeholder="до" min={0} value={filters.maxPrice} onChange={v => updateFilters({ maxPrice: v === null ? undefined : v })} style={{ width: 100 }} />
+                <InputNumber placeholder="Площадь от" min={0} value={filters.minArea} onChange={v => updateFilters({ minArea: v === null ? undefined : v })} style={{ width: 100 }} />
+                <InputNumber placeholder="до" min={0} value={filters.maxArea} onChange={v => updateFilters({ maxArea: v === null ? undefined : v })} style={{ width: 100 }} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Select
+                  placeholder="Статус"
+                  allowClear
+                  value={filters.status}
+                  onChange={v => updateFilters({ status: v })}
+                  options={statusOptions}
+                  style={{ width: 120 }}
+                />
+                <Select
+                  placeholder="Тип"
+                  allowClear
+                  value={filters.type}
+                  onChange={v => updateFilters({ type: v })}
+                  options={typeOptions}
+                  style={{ width: 120 }}
+                />
+              </div>
+              <Button onClick={resetFilters} style={{ borderRadius: 8, fontWeight: 500, marginTop: 8 }}>Сбросить</Button>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Select
-              placeholder="Статус"
-              allowClear
-              value={filters.status}
-              onChange={v => updateFilters({ status: v })}
-              options={statusOptions}
-              style={{ width: 120 }}
-            />
-            <Select
-              placeholder="Тип"
-              allowClear
-              value={filters.type}
-              onChange={v => updateFilters({ type: v })}
-              options={typeOptions}
-              style={{ width: 120 }}
-            />
-          </div>
-          <Button onClick={resetFilters} style={{ borderRadius: 8, fontWeight: 500, marginTop: 8 }}>Сбросить</Button>
         </div>
         {/* Список объектов */}
-        {delayedLoading ? <Spin /> : (
-          <List
-            dataSource={filteredProperties}
-            renderItem={item => (
-              <Card
-                key={item.id}
-                style={{
-                  marginBottom: 12,
-                  cursor: 'pointer',
-                  border: selectedId === item.id ? '2px solid #1890ff' : undefined,
-                  boxShadow: selectedId === item.id ? '0 0 0 4px #e6f7ff, 0 2px 8px rgba(40,60,90,0.10)' : undefined,
-                  transition: 'border 0.3s, box-shadow 0.3s',
-                }}
-                onClick={() => setSelectedId(item.id)}
-              >
-                <div style={{ fontWeight: 600 }}>{item.title}</div>
-                <div style={{ color: '#888', fontSize: 14 }}>{item.address}</div>
-                <div style={{ color: '#1890ff', fontWeight: 500 }}>{item.price.toLocaleString()} ₽</div>
-              </Card>
-            )}
-          />
-        )}
+        <div style={{ background: '#fafbfc', padding: '18px 0', borderRadius: 18, minHeight: 600 }}>
+          {tooMany && (
+            <div style={{ color: '#ff9800', fontWeight: 500, textAlign: 'center', marginBottom: 12 }}>
+              Показаны только первые {maxListCount} объектов для ускорения работы
+            </div>
+          )}
+          {listToShow.map((item, index) => (
+            <React.Fragment key={item.id}>
+              <div style={{ display: 'flex', alignItems: 'stretch', padding: '0 16px', boxSizing: 'border-box', width: '100%', maxWidth: '100%', marginBottom: 36 }}>
+                {/* Вертикальный акцент */}
+                <div style={{ width: 6, borderRadius: 8, background: 'linear-gradient(180deg, #6fa8ff 0%, #e6eaff 100%)', marginRight: 18, marginTop: 18, marginBottom: 18, minHeight: 180, alignSelf: 'stretch' }} />
+                <Card
+                  style={{
+                    width: '100%',
+                    maxWidth: '100%',
+                    background: '#fcfcff',
+                    border: '1.5px solid #f0f0f0',
+                    borderRadius: 18,
+                    boxShadow: selectedId === item.id ? '0 0 0 4px #e6f7ff, 0 4px 18px rgba(40,60,90,0.13)' : '0 2px 12px rgba(40,60,90,0.07)',
+                    transition: 'box-shadow 0.25s, border 0.25s',
+                    cursor: 'pointer',
+                    padding: 0,
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: 240,
+                    justifyContent: 'space-between',
+                  }}
+                  onClick={() => setSelectedId(item.id)}
+                  bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column', flex: 1 }}
+                  hoverable
+                >
+                  <div style={{ width: '100%', height: 140, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: '18px 18px 0 0' }}>
+                    {item.photos && item.photos.length > 0 ? (
+                      <Carousel dots={item.photos.length > 1} style={{ width: '100%', height: 140 }}>
+                        {item.photos.map((photo: string, idx: number) => (
+                          <img
+                            key={idx}
+                            src={photo}
+                            alt={item.title}
+                            style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: '18px 18px 0 0' }}
+                            onError={e => (e.currentTarget.style.display = 'none')}
+                          />
+                        ))}
+                      </Carousel>
+                    ) : (
+                      <div style={{ width: '100%', height: 140, background: '#eee', borderRadius: '18px 18px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb' }}>Нет фото</div>
+                    )}
+                  </div>
+                  <div style={{ padding: '18px 22px 10px 22px', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 80 }}>
+                    <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</div>
+                    <div style={{ color: '#888', fontSize: 15, marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.address}</div>
+                    <div style={{ color: '#1890ff', fontWeight: 600, fontSize: 19, marginBottom: 10 }}>{item.price?.toLocaleString()} ₽</div>
+                    <div style={{ color: '#666', fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.description || ''}</div>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      style={{ borderRadius: 8, marginTop: 12, alignSelf: 'flex-start', fontWeight: 500 }}
+                      onClick={e => { e.stopPropagation(); setAddToSelectionId(item.id); }}
+                    >
+                      Добавить в подбор
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+              {index < listToShow.length - 1 && (
+                <div style={{ width: '100%', height: 1, background: '#e6e6e6', margin: '0 0 36px 0', borderRadius: 1 }} />
+              )}
+            </React.Fragment>
+          ))}
+        </div>
       </div>
       {/* Карта */}
       <div style={{ flex: 1, transition: 'all 0.5s', opacity: show ? 1 : 0, position: 'relative' }}>
@@ -203,6 +271,7 @@ export default function MapSearchPage() {
           style={{ height: '100%', width: '100%' }}
         />
       </div>
+      <AddToSelectionModal open={!!addToSelectionId} propertyId={addToSelectionId || undefined} onClose={() => setAddToSelectionId(null)} />
       <style>{`
         .big-map-page {
           background: #f8fafc;

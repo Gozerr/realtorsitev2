@@ -5,7 +5,8 @@ import { Property, CreatePropertyData } from '../types';
 import CreatePropertyForm from '../components/CreatePropertyForm';
 import PropertyCard from '../components/PropertyCard';
 import { Button, Modal, Spin, Alert, Row, Col, Card, Statistic, Typography, Divider } from 'antd';
-import { HomeOutlined, CheckSquareOutlined, StarOutlined, PlusOutlined, FireOutlined } from '@ant-design/icons';
+import { HomeOutlined, CheckSquareOutlined, StarOutlined, PlusOutlined, FireOutlined, CalendarOutlined } from '@ant-design/icons';
+import { Link } from 'react-router-dom';
 
 const { Title } = Typography;
 
@@ -401,6 +402,12 @@ const DashboardPage = () => {
             </Row>
           </Spin>
         </Card>
+
+        <Link to="/calendar">
+          <Button icon={<CalendarOutlined />} size="large" style={{ margin: 8 }}>
+            Календарь событий
+          </Button>
+        </Link>
       </div>
 
       <Modal

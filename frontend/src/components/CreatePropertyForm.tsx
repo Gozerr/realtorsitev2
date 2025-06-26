@@ -61,14 +61,14 @@ const CreatePropertyForm: React.FC<CreatePropertyFormProps> = ({ onSubmit, onCan
       <Form.Item name="isExclusive" valuePropName="checked">
         <Checkbox>Эксклюзивный объект</Checkbox>
       </Form.Item>
-      <Form.Item>
+      <div style={{ marginTop: 16 }}>
         <Button onClick={onCancel} style={{ marginRight: 8 }} disabled={loading}>
           Отмена
         </Button>
         <Button type="primary" htmlType="submit" loading={loading}>
           Сохранить объект
         </Button>
-      </Form.Item>
+      </div>
     </Form>
   );
 };

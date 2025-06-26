@@ -9,6 +9,8 @@ import { Message } from './chat/message.entity';
 import { Notification } from './notifications/notification.entity';
 import { UserNotificationSettings } from './notifications/user-notification-settings.entity';
 import { EducationEvent } from './education/education-event.entity';
+import { Selection } from './selections/selection.entity';
+import { CalendarEvent } from './calendar/calendar-event.entity';
 
 // Определяем, запущен ли код в development режиме
 const isDevelopment = process.env.NODE_ENV !== 'production' || __dirname.includes('src');
@@ -25,7 +27,9 @@ export const AppDataSource = new DataSource({
     Message,
     Notification,
     UserNotificationSettings,
-    EducationEvent
+    EducationEvent,
+    Selection,
+    CalendarEvent
   ],
   migrations: isDevelopment
     ? ['src/migrations/*.ts']

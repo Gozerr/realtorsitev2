@@ -12,6 +12,7 @@ import {
   Switch,
   AutoComplete,
   Button,
+  Tooltip,
 } from 'antd';
 import {
   HomeOutlined,
@@ -27,8 +28,9 @@ import {
   SunOutlined,
   MoonOutlined,
   UpOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import HeaderChatDropdown from './HeaderChatDropdown';
 import NotificationDropdown from '../pages/NotificationDropdown';
@@ -36,7 +38,6 @@ import { useTheme } from '../context/ThemeContext';
 import { TutorialProvider } from '../context/TutorialContext';
 import TutorialOverlay from './TutorialOverlay';
 import { events, courses, faq } from '../pages/EducationPage';
-import { userMock, agencyMock } from '../pages/ProfilePage';
 import { getRecentProperties } from '../services/property.service';
 import { Property } from '../types';
 
@@ -126,20 +127,12 @@ const AppLayout: React.FC = () => {
         })),
         {
           type: 'Профиль',
-          label: userMock.firstName + ' ' + userMock.lastName,
-          value: userMock.firstName + ' ' + userMock.lastName,
+          label: authContext?.user?.firstName + ' ' + authContext?.user?.lastName,
+          value: authContext?.user?.firstName + ' ' + authContext?.user?.lastName,
           path: '/profile',
           tab: 'profile',
-          description: userMock.about
+          description: ''
         },
-        {
-          type: 'Агентство',
-          label: agencyMock.name,
-          value: agencyMock.name,
-          path: '/profile',
-          tab: 'agency',
-          description: agencyMock.description
-        }
       ];
 
       // 5. Объекты недвижимости
@@ -177,7 +170,7 @@ const AppLayout: React.FC = () => {
       ]);
     }
     fetchData();
-  }, []);
+  }, [authContext]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -312,6 +305,11 @@ const AppLayout: React.FC = () => {
             maxWidth: 240,
             borderRight: '1px solid var(--border-color)',
             boxShadow: '0 0 0 1px var(--border-color)',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            height: '100vh',
+            zIndex: 100,
           }}
           width={240}
         >
@@ -363,7 +361,7 @@ const AppLayout: React.FC = () => {
             </div>
           </div>
         </Sider>
-        <Layout>
+        <Layout style={{ minHeight: '100vh', marginLeft: 240 }}>
           <Header className="site-layout-background" style={{
             padding: '0 24px',
             background: 'var(--surface-color)',
@@ -398,6 +396,11 @@ const AppLayout: React.FC = () => {
                     </Badge>
                   </Popover>
                   <NotificationDropdown />
+                  <Link to="/calendar" style={{ marginLeft: 16 }}>
+                    <Tooltip title="Календарь">
+                      <CalendarOutlined style={{ fontSize: 24, color: '#1976d2', cursor: 'pointer' }} />
+                    </Tooltip>
+                  </Link>
                   <SettingOutlined style={{ fontSize: '22px', cursor: 'pointer', transition: 'color 0.2s', color: 'var(--text-secondary)' }} onClick={() => navigate('/settings')} />
                   {theme === 'light' ? (
                     <SunOutlined 
@@ -419,13 +422,15 @@ const AppLayout: React.FC = () => {
                     onOpenChange={setProfilePopoverOpen}
                     placement="bottomRight"
                   >
-                    <Avatar src={authContext?.user?.photo} icon={<UserOutlined />} style={{ cursor: 'pointer', width: 38, height: 38, boxShadow: '0 2px 8px var(--shadow-light)', transition: 'box-shadow 0.2s' }} />
+                    <Avatar src={authContext?.user?.photo || authContext?.user?.avatar || undefined} icon={<UserOutlined />} style={{ cursor: 'pointer', width: 38, height: 38, boxShadow: '0 2px 8px var(--shadow-light)', transition: 'box-shadow 0.2s' }}>
+                      {(!authContext?.user?.photo && !authContext?.user?.avatar && authContext?.user?.firstName && authContext?.user?.lastName) ? `${authContext.user.firstName[0]}${authContext.user.lastName[0]}` : null}
+                    </Avatar>
                   </Popover>
                 </Space>
               </Col>
             </Row>
           </Header>
-          <div className="site-layout-background" style={{ padding: 24, minHeight: 360, background: 'var(--background-color)' }}>
+          <div className="site-layout-background" style={{ padding: 24, minHeight: 360, background: 'var(--background-color)', marginLeft: 0 }}>
             <Outlet />
           </div>
         </Layout>

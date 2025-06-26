@@ -154,7 +154,7 @@ const ChatsPage: React.FC = () => {
               onClick={() => selectConversation(item)}
           >
               <List.Item.Meta
-                  avatar={<Avatar src={companion.avatar || undefined}>{(!companion.avatar && companion.firstName && companion.lastName) ? `${companion.firstName[0]}${companion.lastName[0]}` : null}</Avatar>}
+                  avatar={<Avatar src={companion.photo || companion.avatar || undefined}>{(!companion.photo && !companion.avatar && companion.firstName && companion.lastName) ? `${companion.firstName[0]}${companion.lastName[0]}` : null}</Avatar>}
                   title={`${companion.firstName} ${companion.lastName}`}
                   description={" "}
               />
@@ -183,8 +183,8 @@ const ChatsPage: React.FC = () => {
               boxShadow: '0 1px 4px #eaeaea',
               minHeight: 56
             }}>
-              <Avatar size={44} style={{ background: '#1890ff', fontWeight: 600 }}>
-                {companion.firstName[0]}{companion.lastName[0]}
+              <Avatar size={44} src={companion.photo || companion.avatar || undefined} style={{ background: '#1890ff', fontWeight: 600 }}>
+                {(!companion.photo && !companion.avatar && companion.firstName && companion.lastName) ? `${companion.firstName[0]}${companion.lastName[0]}` : null}
               </Avatar>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 17, color: '#222' }}>{companion.firstName} {companion.lastName}</div>
@@ -226,8 +226,8 @@ const ChatsPage: React.FC = () => {
                   }}
                 >
                   <Avatar
-                    size={40}
-                    src={msg.author.avatar || undefined}
+                    size={36}
+                    src={msg.author.photo || msg.author.avatar || undefined}
                     style={{
                       background: isMe ? '#1890ff' : '#e0e7ef',
                       color: isMe ? '#fff' : '#222',
@@ -236,7 +236,7 @@ const ChatsPage: React.FC = () => {
                       border: isMe ? '2px solid #1890ff' : '2px solid #e0e7ef',
                     }}
                   >
-                    {(!msg.author.avatar && msg.author.firstName && msg.author.lastName)
+                    {(!msg.author.photo && !msg.author.avatar && msg.author.firstName && msg.author.lastName)
                       ? `${msg.author.firstName[0]}${msg.author.lastName[0]}`
                       : null}
                   </Avatar>

@@ -90,8 +90,9 @@ const PropertyDetailsPage: React.FC = () => {
               />
               <div>
                 <div style={{ fontWeight: 600 }}>{agentName}</div>
-                <div style={{ color: '#888' }}>{property.agency || '—'}</div>
-                <div>{property.agent?.phone || '—'}</div>
+                {property.agent?.phone && (
+                  <div style={{ color: '#222', fontSize: 16, margin: '4px 0' }}>{property.agent.phone}</div>
+                )}
                 <div>{property.agent?.email || '—'}</div>
               </div>
             </div>

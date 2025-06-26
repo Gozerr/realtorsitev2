@@ -15,6 +15,10 @@ export class AgenciesService {
     return this.agenciesRepository.find();
   }
 
+  findOne(id: number): Promise<Agency | null> {
+    return this.agenciesRepository.findOne({ where: { id } });
+  }
+
   create(createAgencyDto: CreateAgencyDto): Promise<Agency> {
     const newAgency = this.agenciesRepository.create(createAgencyDto);
     return this.agenciesRepository.save(newAgency);

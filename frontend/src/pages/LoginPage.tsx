@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { Form, Input, Button, Typography, Row, Col, Card } from 'antd';
 import { AuthContext } from '../context/AuthContext';
-import { login } from '../services/auth.service';
+import { login, getProfile } from '../services/auth.service';
 
 const { Title } = Typography;
 
@@ -15,7 +15,8 @@ const LoginPage = () => {
     setError('');
     try {
       const data = await login({ email: values.email, password: values.password });
-      authContext?.setAuthData(data.access_token, data.user);
+      const profile = await getProfile(data.access_token);
+      authContext?.setAuthData(data.access_token, profile);
     } catch (err) {
       setError('Failed to login. Please check your credentials.');
       console.error(err);
