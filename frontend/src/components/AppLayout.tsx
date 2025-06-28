@@ -37,9 +37,11 @@ import NotificationDropdown from '../pages/NotificationDropdown';
 import { useTheme } from '../context/ThemeContext';
 import { TutorialProvider } from '../context/TutorialContext';
 import TutorialOverlay from './TutorialOverlay';
-import { events, courses, faq } from '../pages/EducationPage';
+import { faq } from '../pages/EducationPage';
 import { getRecentProperties } from '../services/property.service';
 import { Property } from '../types';
+import { fetchEducationEvents, EducationEvent } from '../services/education.service';
+import { ChatContext } from '../context/ChatContext';
 
 // --- Заглушки для чатов и уведомлений (замените на реальные сервисы) ---
 const getChats = async () => [
@@ -78,6 +80,7 @@ const AppLayout: React.FC = () => {
   const [searchOptions, setSearchOptions] = useState<any[]>([]);
   const [searchData, setSearchData] = useState<any[]>([]);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const chatContext = useContext(ChatContext);
 
   useEffect(() => {
     async function fetchData() {
@@ -100,6 +103,12 @@ const AppLayout: React.FC = () => {
       } catch {}
 
       // 4. Обучение, профиль, агентство
+      let educationEvents: EducationEvent[] = [];
+      try {
+        educationEvents = await fetchEducationEvents();
+      } catch {}
+      const events = educationEvents.filter(ev => ev.type === 'event' || ev.type === 'webinar');
+      const courses = educationEvents.filter(ev => ev.type === 'course');
       const educationData = [
         ...events.map(ev => ({
           type: 'Мероприятие',
@@ -289,6 +298,13 @@ const AppLayout: React.FC = () => {
     setSearchOptions([]);
   };
 
+  // Считаем количество чатов с непрочитанными сообщениями для текущего пользователя
+  const unreadChatsCount = (chatContext.conversations || []).filter(conv =>
+    conv.messages && conv.messages.some(msg =>
+      msg.author.id !== authContext?.user?.id && msg.status !== 'read'
+    )
+  ).length;
+
   return (
     <TutorialProvider>
       <Layout style={{ minHeight: '100vh' }}>
@@ -391,7 +407,7 @@ const AppLayout: React.FC = () => {
               <Col flex="none">
                 <Space size="large">
                   <Popover content={<HeaderChatDropdown />} trigger="click" placement="bottomRight">
-                    <Badge count={2}>
+                    <Badge count={unreadChatsCount} overflowCount={9} offset={[8, 0]}>
                       <MessageOutlined style={{ fontSize: '22px', cursor: 'pointer', transition: 'color 0.2s', color: 'var(--text-secondary)' }} />
                     </Badge>
                   </Popover>

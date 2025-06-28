@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Property, PropertyStatus } from './property.entity';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -225,5 +225,13 @@ export class PropertiesService {
       order: { createdAt: 'DESC' },
       relations: ['agent'],
     });
+  }
+
+  async findOrphaned(): Promise<Property[]> {
+    return this.propertiesRepository.find({ where: { agent: IsNull() } });
+  }
+
+  async findAllWithAgent(): Promise<Property[]> {
+    return this.propertiesRepository.find({ relations: ['agent'] });
   }
 }

@@ -120,10 +120,12 @@ export interface Message {
   createdAt: string;
   author: User;
   conversation: Conversation;
+  status?: 'sent' | 'delivered' | 'read';
 }
 
 export interface Conversation {
-  id:string;
+  id: string;
   participants: User[];
   messages: Message[];
+  property: Property;
 }

@@ -20,6 +20,8 @@ import { NotificationProvider } from './context/NotificationContext';
 import MapSearchPage from './pages/MapSearchPage';
 import { PropertiesProvider } from './context/PropertiesContext';
 import CalendarPage from './pages/CalendarPage';
+import PropertyDetailsPage from './pages/PropertyDetailsPage';
+import ClientSelectionPage from './pages/ClientSelectionPage';
 
 // ProtectedRoute: только для авторизованных
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -59,6 +61,7 @@ function App() {
                   }>
                     <Route index element={<DashboardPage />} />
                     <Route path="properties" element={<PropertiesPage />} />
+                    <Route path="properties/:id" element={<PropertyDetailsPage />} />
                     <Route path="clients" element={<ClientsPage />} />
                     <Route path="selection" element={<SelectionPage />} />
                     <Route path="chats" element={<ChatsPage />} />
@@ -68,6 +71,7 @@ function App() {
                     <Route path="settings" element={<SettingsPage />} />
                     <Route path="map" element={<MapSearchPage />} />
                     <Route path="calendar" element={<CalendarPage />} />
+                    <Route path="client-selection/:token" element={<ClientSelectionPage />} />
                   </Route>
                 </Routes>
               </Router>

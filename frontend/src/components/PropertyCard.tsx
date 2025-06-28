@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import { Card, Carousel, Tag, Button, Tooltip, Modal, Form, Select } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { Property } from '../types';
@@ -28,6 +28,12 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onStatusChange, m
   const [selectedStatus, setSelectedStatus] = useState(property.status);
   const auth = useContext(AuthContext);
   const currentUser = auth?.user;
+  const carouselRef = useRef<any>(null);
+  const [lastDirection, setLastDirection] = useState<'left' | 'right' | null>(null);
+  const [hovered, setHovered] = useState(false);
+  const [dragStartX, setDragStartX] = useState<number | null>(null);
+  const [dragLastX, setDragLastX] = useState<number | null>(null);
+  const [lastSegment, setLastSegment] = useState<number | null>(null);
 
   // Агент может менять статус только если он привязан к объекту
   const canEditStatus =
@@ -52,6 +58,43 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onStatusChange, m
     }
   };
 
+  // --- Логика для mouse move: листаем по сегментам ширины ---
+  const handleMouseMoveSlider = (e: React.MouseEvent<HTMLDivElement, MouseEvent>, images: string[]) => {
+    if (!images.length || !carouselRef.current) return;
+    const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const segmentCount = images.length;
+    const segmentWidth = rect.width / segmentCount;
+    const currentSegment = Math.floor(x / segmentWidth);
+    if (lastSegment === null) {
+      setLastSegment(currentSegment);
+      setDragLastX(x);
+      return;
+    }
+    if (currentSegment > lastSegment) {
+      carouselRef.current.next();
+      setLastSegment(currentSegment);
+    } else if (currentSegment < lastSegment) {
+      carouselRef.current.prev();
+      setLastSegment(currentSegment);
+    }
+    setDragLastX(x);
+  };
+  const handleMouseLeaveSlider = () => {
+    setDragStartX(null);
+    setDragLastX(null);
+    setLastSegment(null);
+    setLastDirection(null);
+    setHovered(false);
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Не переходить, если клик по кнопке внутри
+    const target = e.target as HTMLElement;
+    if (target.closest('button, a, [role="button"]')) return;
+    // navigate(`/properties/${property.id}`); // отключаю клик по всей карточке
+  };
+
   if (mode === 'compact') {
     return (
       <Card
@@ -64,9 +107,13 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onStatusChange, m
           boxShadow: '0 2px 8px var(--shadow-light)'
         }}
         cover={
-          <div style={{ position: 'relative', padding: 12 }}>
+          <div
+            style={{ position: 'relative', padding: 12, cursor: images.length > 1 ? 'pointer' : 'default' }}
+            onMouseMove={e => handleMouseMoveSlider(e, images)}
+            onMouseLeave={handleMouseLeaveSlider}
+          >
             {images.length > 0 ? (
-              <Carousel autoplay style={{ width: '100%', height: 170 }}>
+              <Carousel ref={carouselRef} dots={true} style={{ width: '100%', height: 170 }}>
                 {images.map((url: string, i: number) => (
                   <div key={i}>
                     <img
@@ -95,6 +142,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onStatusChange, m
           </div>
         }
         bodyStyle={{ padding: 16 }}
+        onClick={handleCardClick}
+        hoverable
       >
         <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 4, color: 'var(--text-primary)' }}>{property.title}</div>
         <div style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 4 }}>{property.address}</div>
@@ -118,9 +167,13 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onStatusChange, m
         boxShadow: '0 2px 8px var(--shadow-light)'
       }}
       cover={
-        <div style={{ position: 'relative', padding: 12 }}>
+        <div
+          style={{ position: 'relative', padding: 12, cursor: images.length > 1 ? 'pointer' : 'default' }}
+          onMouseMove={e => handleMouseMoveSlider(e, images)}
+          onMouseLeave={handleMouseLeaveSlider}
+        >
           {images.length > 0 ? (
-            <Carousel autoplay style={{ width: '100%', height: 170 }}>
+            <Carousel ref={carouselRef} dots={true} style={{ width: '100%', height: 170 }}>
               {images.map((url: string, i: number) => (
                 <div key={i}>
                   <img
@@ -148,6 +201,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onStatusChange, m
           )}
         </div>
       }
+      onClick={handleCardClick}
+      hoverable
     >
       <div style={{ marginBottom: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
         <Tag color="purple" style={{ fontWeight: 600, fontSize: 14 }}>
@@ -207,21 +262,21 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onStatusChange, m
         </div>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16 }}>
-        <Button type="default" onClick={() => navigate(`/properties/${property.id}`)}>
+        <Button type="default" onClick={() => { console.log('navigate to property', property.id); navigate(`/properties/${property.id}`); }}>
           Подробнее
         </Button>
         <Tooltip title="Чат с агентом">
           <Button
             shape="circle"
             icon={<MessageOutlined />}
-            onClick={() => navigate(`/chats?user=${property.agent?.id}`)}
+            onClick={e => { e.stopPropagation(); navigate(`/chats?user=${property.agent?.id}`); }}
           />
         </Tooltip>
         <Tooltip title="Добавить в подбор">
           <Button
             shape="circle"
             icon={<PlusOutlined />}
-            onClick={() => setModalOpen(true)}
+            onClick={e => { e.stopPropagation(); setModalOpen(true); }}
           />
         </Tooltip>
       </div>

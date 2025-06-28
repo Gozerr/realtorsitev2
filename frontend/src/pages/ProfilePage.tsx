@@ -54,7 +54,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user?.agencyId && authContext?.token) {
-      fetch(`/api/agencies/${user.agencyId}`, {
+      fetch(`/agencies/${user.agencyId}`, {
         headers: { Authorization: `Bearer ${authContext.token}` },
       })
         .then(res => res.ok ? res.json() : null)

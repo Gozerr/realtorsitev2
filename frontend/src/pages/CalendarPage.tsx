@@ -3,7 +3,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Modal, Button, Form, Input, Select, DatePicker, Tag, Tooltip, Space } from 'antd';
+import { Modal, Button, Form, Input, Select, DatePicker, Tag, Tooltip, Space, Tabs } from 'antd';
 import { fetchCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, CalendarEvent } from '../services/calendar.service';
 import { PlusOutlined, EditOutlined, DeleteOutlined, CalendarOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -20,6 +20,7 @@ const CalendarPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [form] = Form.useForm();
+  const [activeTab, setActiveTab] = useState<'personal' | 'public'>('personal');
 
   useEffect(() => {
     loadEvents();
@@ -31,6 +32,24 @@ const CalendarPage: React.FC = () => {
     setEvents(data);
     setLoading(false);
   };
+
+  // Фильтрация дублей по title+start
+  function getUniqueEvents(events: CalendarEvent[]) {
+    const seen = new Set<string>();
+    return events.filter(e => {
+      const key = `${e.title.trim()}|${dayjs(e.start).toISOString()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  // Фильтрация по типу события
+  function getFilteredEvents() {
+    return getUniqueEvents(events).filter(e =>
+      activeTab === 'personal' ? e.type === 'personal' : e.type === 'public'
+    );
+  }
 
   const handleDateSelect = (selectInfo: any) => {
     setEditingEvent(null);
@@ -116,13 +135,28 @@ const CalendarPage: React.FC = () => {
           Добавить событие
         </Button>
       </div>
+      <Tabs
+        activeKey={activeTab}
+        onChange={key => setActiveTab(key as 'personal' | 'public')}
+        items={[
+          {
+            key: 'personal',
+            label: 'Мои мероприятия',
+          },
+          {
+            key: 'public',
+            label: 'Все события',
+          },
+        ]}
+        style={{ marginBottom: 24 }}
+      />
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
         headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' }}
-        events={events.map(e => ({
+        events={getFilteredEvents().map(e => ({
           id: e.id.toString(),
-          title: e.title,
+          title: truncate(e.title, 30),
           start: e.start,
           end: e.end,
           backgroundColor: eventColors[e.type],
@@ -165,18 +199,22 @@ const CalendarPage: React.FC = () => {
   );
 };
 
+function truncate(str: string, max: number) {
+  return str.length > max ? str.slice(0, max - 1) + '…' : str;
+}
+
 function renderEventContent(eventInfo: any) {
   const { event } = eventInfo;
   const type = event.extendedProps.type as 'personal' | 'public';
   return (
     <Tooltip title={<div>
-      <div style={{ fontWeight: 600 }}>{event.title}</div>
+      <div style={{ fontWeight: 600 }}>{truncate(event.title, 30)}</div>
       {event.extendedProps.description && <div style={{ marginTop: 4 }}>{event.extendedProps.description}</div>}
       <div style={{ marginTop: 8, color: '#888' }}>{type === 'personal' ? 'Личное событие' : 'Общее мероприятие'}</div>
     </div>}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <Tag color={eventColors[type]} style={{ marginRight: 0 }} />
-        <span style={{ fontWeight: 500 }}>{event.title}</span>
+        <span style={{ fontWeight: 500 }}>{truncate(event.title, 30)}</span>
       </div>
     </Tooltip>
   );

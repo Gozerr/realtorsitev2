@@ -58,13 +58,13 @@ export class PropertiesController {
 
   @Post()
   create(@Body() createPropertyDto: CreatePropertyDto, @Request() req) {
-    const agentId = req.user.userId;
+    const agentId = req.user.id;
     return this.propertiesService.create(createPropertyDto, agentId);
   }
 
   @Patch(':id/status')
   async updateStatus(@Param('id') id: string, @Body() body: { status: PropertyStatus }, @Request() req) {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     return this.propertiesService.updateStatus(+id, body.status, userId);
   }
 
@@ -79,5 +79,18 @@ export class PropertiesController {
       throw new NotFoundException('Объект недвижимости не найден');
     }
     return property;
+  }
+
+  @Get('debug-orphaned')
+  async getOrphanedProperties() {
+    // Возвращает все объекты, у которых не заполнен агент
+    return this.propertiesService.findOrphaned();
+  }
+
+  @Get('debug-all')
+  async getAllDebug() {
+    // Возвращает все объекты с id, title и agent.id
+    const all = await this.propertiesService.findAllWithAgent();
+    return all.map(p => ({ id: p.id, title: p.title, agentId: p.agent?.id || null }));
   }
 }

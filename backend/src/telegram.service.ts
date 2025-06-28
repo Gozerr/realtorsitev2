@@ -9,6 +9,7 @@ export async function sendTelegramMessage(telegramId: string, text: string) {
     await axios.post(API_URL, {
       chat_id: telegramId,
       text,
+      // parse_mode: 'HTML', // отключаем HTML
     });
   } catch (err) {
     // Логируем ошибку подробно

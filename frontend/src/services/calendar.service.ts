@@ -13,20 +13,20 @@ export type CalendarEvent = {
 };
 
 export async function fetchCalendarEvents(): Promise<CalendarEvent[]> {
-  const res = await api.get<CalendarEvent[]>('/api/calendar');
+  const res = await api.get<CalendarEvent[]>('/calendar');
   return res.data;
 }
 
 export async function createCalendarEvent(event: Partial<CalendarEvent>): Promise<CalendarEvent> {
-  const res = await api.post<CalendarEvent>('/api/calendar', event);
+  const res = await api.post<CalendarEvent>('/calendar', event);
   return res.data;
 }
 
 export async function updateCalendarEvent(id: number, event: Partial<CalendarEvent>): Promise<CalendarEvent> {
-  const res = await api.put<CalendarEvent>(`/api/calendar/${id}`, event);
+  const res = await api.put<CalendarEvent>(`/calendar/${id}`, event);
   return res.data;
 }
 
 export async function deleteCalendarEvent(id: number): Promise<void> {
-  await api.delete(`/api/calendar/${id}`);
+  await api.delete(`/calendar/${id}`);
 } 

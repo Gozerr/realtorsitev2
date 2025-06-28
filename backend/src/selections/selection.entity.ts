@@ -4,6 +4,7 @@ import {
   Column,
   ManyToOne,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 import { User } from '../users/user.entity';
 
@@ -23,4 +24,11 @@ export class Selection {
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @Column({ unique: true })
+  @Index()
+  clientToken: string;
+
+  @Column('simple-json', { nullable: true })
+  clientLikes: { propertyId: number; liked: boolean }[];
 } 

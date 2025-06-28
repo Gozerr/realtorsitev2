@@ -2,12 +2,12 @@ import api from './api';
 import { LoginCredentials, User } from '../types';
 
 export const login = async (credentials: LoginCredentials): Promise<{ access_token: string; user: User }> => {
-  const response = await api.post('/api/auth/login', credentials);
+  const response = await api.post('/auth/login', credentials);
   return response.data;
 };
 
 export const updateProfile = async (userData: Partial<User>): Promise<User> => {
-  const response = await api.patch('/api/users/profile', userData);
+  const response = await api.patch('/users/profile', userData);
   return response.data;
 };
 
@@ -17,7 +17,7 @@ export const updateUser = async (id: number, userData: Partial<User>): Promise<U
 };
 
 export const getProfile = async (token?: string): Promise<User> => {
-  const response = await api.get('/api/users/profile', {
+  const response = await api.get('/users/profile', {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
   return response.data;

@@ -6,9 +6,10 @@ import { Conversation } from './conversation.entity';
 import { Message } from './message.entity';
 import { ChatController } from './chat.controller';
 import { User } from '../users/user.entity';
+import { Property } from '../properties/property.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Conversation, Message, User])],
+  imports: [TypeOrmModule.forFeature([Conversation, Message, User, Property])],
   providers: [ChatGateway, ChatService],
   controllers: [ChatController],
 })

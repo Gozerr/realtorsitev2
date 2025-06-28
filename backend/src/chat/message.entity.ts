@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+} from 'typeorm';
 import { User } from '../users/user.entity';
 import { Conversation } from './conversation.entity';
 
@@ -18,4 +24,7 @@ export class Message {
 
   @ManyToOne(() => Conversation, conversation => conversation.messages)
   conversation: Conversation;
+
+  @Column({ type: 'varchar', default: 'sent' })
+  status: 'sent' | 'delivered' | 'read';
 } 

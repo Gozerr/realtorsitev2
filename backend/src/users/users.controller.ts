@@ -16,7 +16,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Request() req) {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     return this.usersService.findOneById(userId);
   }
 
@@ -25,7 +25,7 @@ export class UsersController {
   async updateProfile(@Body() updateData: Partial<CreateUserDto>, @Request() req) {
     console.log('updateProfile controller called with:', { updateData, user: req.user });
     
-    const userId = req.user.userId;
+    const userId = req.user.id;
     if (!userId) {
       throw new Error('User ID not found in JWT token');
     }

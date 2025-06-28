@@ -41,15 +41,19 @@ async function importRecentObjects() {
   const repo = AppDataSource.getRepository(Property);
   const userRepo = AppDataSource.getRepository(User);
 
-  const filePath = path.join(__dirname, 'recent_objects.json');
+  const filePath = path.join(__dirname, 'recent_objects_mirkvartir.json');
   const data = fs.readFileSync(filePath, 'utf-8');
   const objects = JSON.parse(data);
 
   for (const obj of objects) {
-    // Поиск агента по фамилии (или имени, если в obj.agency только имя)
+    // --- Новый способ: ищем пользователя по email ---
     let agent: User | null = null;
-    if (obj.agency) {
-      agent = await userRepo.findOneBy({ lastName: obj.agency });
+    if (obj.agentEmail) {
+      agent = await userRepo.findOneBy({ email: obj.agentEmail });
+      if (!agent) {
+        console.warn(`Пользователь с email ${obj.agentEmail} не найден, объект пропущен: ${obj.title}`);
+        continue;
+      }
     }
 
     // Проверяем, есть ли уже такой объект (например, по адресу и цене)
@@ -74,7 +78,7 @@ async function importRecentObjects() {
         address: obj.address ?? '',
         price: obj.price ?? 0,
         area: obj.area ?? 0,
-        bedrooms: obj.bedrooms ?? 0,
+        bedrooms: obj.rooms ?? 0,
         bathrooms: obj.bathrooms ?? 0,
         status: (obj.status as any) ?? 'for_sale',
         isExclusive: obj.isExclusive ?? false,
@@ -83,11 +87,29 @@ async function importRecentObjects() {
         agent: agent ?? null,
         lat,
         lng,
+        floor: obj.floor ?? null,
+        totalFloors: obj.totalFloors ?? null,
+        link: obj.link ?? '',
       });
       await repo.save(property);
-      console.log(`Импортирован объект: ${property.title || property.address} (${lat && lng ? 'с координатами' : 'без координат'})`);
+      console.log(`Импортирован объект: ${property.title || property.address} (${lat && lng ? 'с координатами' : 'без координат'}), агент: ${agent?.email}`);
     } else {
-      console.log(`Пропущен (уже есть): ${obj.title || obj.address}`);
+      // --- Обновляем только фото и ссылку ---
+      let updated = false;
+      if (Array.isArray(obj.images) && obj.images.length > 0 && JSON.stringify(obj.images) !== JSON.stringify(exists.photos)) {
+        exists.photos = obj.images;
+        updated = true;
+      }
+      if (obj.link && obj.link !== exists.link) {
+        exists.link = obj.link;
+        updated = true;
+      }
+      if (updated) {
+        await repo.save(exists);
+        console.log(`Обновлены фото/ссылка: ${exists.title || exists.address}`);
+      } else {
+        console.log(`Пропущен (уже есть, фото не изменились): ${obj.title || obj.address}`);
+      }
     }
   }
 

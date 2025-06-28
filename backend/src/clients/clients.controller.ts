@@ -10,11 +10,11 @@ export class ClientsController {
 
   @Get()
   findAllForAgent(@Request() req) {
-    return this.clientsService.findAllForAgent(req.user.userId);
+    return this.clientsService.findAllForAgent(req.user.id);
   }
 
   @Post()
   create(@Body() createClientDto: CreateClientDto, @Request() req) {
-    return this.clientsService.create(createClientDto, req.user.userId);
+    return this.clientsService.create(createClientDto, req.user.id);
   }
 } 

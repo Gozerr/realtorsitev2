@@ -71,7 +71,7 @@ export function useProperties({
   // Получение объектов по bbox и фильтрам
   const fetchProperties = useCallback(async (newBbox?: [number, number, number, number], newFilters?: PropertiesFilters) => {
     setLoading(true);
-    let url = '/api/properties/map?';
+    let url = '/properties/map?';
     const bboxToUse = newBbox || bbox;
     if (bboxToUse) {
       url += `bbox=${bboxToUse.join(',')}`;
@@ -88,7 +88,7 @@ export function useProperties({
     if (f.poi && f.poi.length > 0) url += `&poi=${f.poi.join(',')}`;
     // Fallback: если bbox не задан, убираем bbox из url (или подгружаем все объекты по фильтрам)
     if (!bboxToUse) {
-      url = '/api/properties?';
+      url = '/properties?';
       if (f.search) url += `search=${encodeURIComponent(f.search)}&`;
       if (f.minPrice) url += `minPrice=${f.minPrice}&`;
       if (f.maxPrice) url += `maxPrice=${f.maxPrice}&`;
@@ -100,10 +100,14 @@ export function useProperties({
       if (f.poi && f.poi.length > 0) url += `poi=${f.poi.join(',')}&`;
       url = url.replace(/&$/, '');
     }
-    const res = await fetch(url);
-    const data = await res.json();
-    setProperties(data);
-    setLoading(false);
+    try {
+      const res = await api.get(url);
+      setProperties(res.data);
+    } catch (e) {
+      setProperties([]);
+    } finally {
+      setLoading(false);
+    }
   }, [bbox, filters]);
 
   // Подгружать объекты при изменении bbox или фильтров

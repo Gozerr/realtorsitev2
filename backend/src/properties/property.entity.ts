@@ -1,4 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  CreateDateColumn,
+} from 'typeorm';
 import { User } from '../users/user.entity';
 
 export enum PropertyStatus {
@@ -44,7 +50,7 @@ export class Property {
   @Column({ type: 'boolean', default: false })
   isExclusive: boolean;
 
-  @Column('simple-array', { nullable: true })
+  @Column('simple-json', { nullable: true })
   photos: string[];
 
   @ManyToOne(() => User, user => user.properties, { nullable: true })
@@ -58,4 +64,25 @@ export class Property {
 
   @Column({ type: 'float', nullable: true })
   lng: number;
+
+  @Column({ type: 'int', nullable: true })
+  floor: number;
+
+  @Column({ type: 'int', nullable: true })
+  totalFloors: number;
+
+  @Column({ type: 'varchar', nullable: true })
+  link: string;
+
+  @Column({ type: 'decimal', nullable: true })
+  pricePerM2: number;
+
+  @Column({ type: 'varchar', nullable: true })
+  externalId: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  seller: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  datePublished: string;
 }

@@ -6,11 +6,13 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { User } from '../users/user.entity';
 
 export type CalendarEventType = 'personal' | 'public';
 
+@Index('uniq_event', ['title', 'start', 'end', 'type'], { unique: true })
 @Entity('calendar_events')
 export class CalendarEvent {
   @PrimaryGeneratedColumn()

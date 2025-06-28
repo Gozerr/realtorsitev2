@@ -41,17 +41,26 @@ export class ChatGateway implements OnGatewayConnection {
     @MessageBody() data: { conversationId: string; content: string },
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
-    // Получаем userId из client.data (установить при аутентификации)
     const authorId = client.data.userId;
     if (!authorId) return;
-    console.log('handleSendMessage:', { authorId, conversationId: data.conversationId });
-    const message = await this.chatService.createMessage(data.content, data.conversationId, authorId);
-    // Лог участников чата
-    const conv = await this.chatService['conversationRepository'].findOne({ where: { id: data.conversationId }, relations: ['participants'] });
-    if (conv) {
-      console.log('Участники чата:', conv.participants.map(u => ({ id: u.id, email: u.email })));
+    console.log('[GATEWAY] handleSendMessage:', { authorId, data });
+    try {
+      const message = await this.chatService.createMessage(data.content, data.conversationId, authorId);
+      console.log('[GATEWAY] Message created:', message);
+      // Лог участников чата
+      const conv = await this.chatService['conversationRepository'].findOne({ where: { id: data.conversationId }, relations: ['participants'] });
+      if (conv) {
+        console.log('[GATEWAY] Участники чата:', conv.participants.map(u => ({ id: u.id, email: u.email })));
+      }
+      this.server.to(data.conversationId).emit('newMessage', message);
+    } catch (e) {
+      console.error('[GATEWAY] Ошибка в handleSendMessage:', e);
+      if (e instanceof Error && e.name === 'ForbiddenException') {
+        client.emit('sendMessageError', { message: e.message });
+      } else {
+        client.emit('sendMessageError', { message: 'Ошибка при отправке сообщения' });
+      }
     }
-    this.server.to(data.conversationId).emit('newMessage', message);
   }
 
   @SubscribeMessage('joinRoom')
@@ -60,5 +69,38 @@ export class ChatGateway implements OnGatewayConnection {
     @ConnectedSocket() client: Socket,
   ) {
     client.join(conversationId);
+  }
+
+  // Публичный метод для отправки события newConversation участникам чата
+  emitNewConversation(conversation: any) {
+    if (!conversation || !conversation.id || !conversation.participants) return;
+    // Отправляем событие всем участникам (каждый должен быть в комнате с id чата)
+    this.server.to(conversation.id).emit('newConversation', conversation);
+  }
+
+  @SubscribeMessage('messageDelivered')
+  async handleMessageDelivered(
+    @MessageBody() data: { messageId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const updated = await this.chatService.setMessageStatus(data.messageId, 'delivered');
+      this.server.to(updated.conversation.id).emit('messageStatusUpdate', { messageId: updated.id, status: 'delivered' });
+    } catch (e) {
+      console.error('[GATEWAY] Ошибка в handleMessageDelivered:', e);
+    }
+  }
+
+  @SubscribeMessage('messageRead')
+  async handleMessageRead(
+    @MessageBody() data: { messageId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const updated = await this.chatService.setMessageStatus(data.messageId, 'read');
+      this.server.to(updated.conversation.id).emit('messageStatusUpdate', { messageId: updated.id, status: 'read' });
+    } catch (e) {
+      console.error('[GATEWAY] Ошибка в handleMessageRead:', e);
+    }
   }
 } 

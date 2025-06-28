@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, ManyToMany, JoinTable, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, ManyToMany, JoinTable, OneToMany, ManyToOne } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Message } from './message.entity';
+import { Property } from '../properties/property.entity';
 
 @Entity()
 export class Conversation {
@@ -13,4 +14,7 @@ export class Conversation {
 
   @OneToMany(() => Message, message => message.conversation)
   messages: Message[];
+
+  @ManyToOne(() => Property, { nullable: false })
+  property: Property;
 } 

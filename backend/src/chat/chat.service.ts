@@ -1,9 +1,14 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Conversation } from './conversation.entity';
 import { Message } from './message.entity';
 import { User } from '../users/user.entity';
+import { Property } from '../properties/property.entity';
 
 @Injectable()
 export class ChatService {
@@ -14,17 +19,21 @@ export class ChatService {
     private messageRepository: Repository<Message>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Property)
+    private propertyRepository: Repository<Property>,
   ) {}
 
-  // Получить или создать чат между двумя пользователями
-  async createOrGetConversation(userId1: number, userId2: number): Promise<Conversation> {
+  // Получить или создать чат между двумя пользователями по propertyId
+  async createOrGetConversation(userId1: number, userId2: number, propertyId: number): Promise<Conversation> {
     if (userId1 === userId2) throw new ForbiddenException('Нельзя создать чат с самим собой');
-    // Получаем все чаты с двумя участниками
+    // Получаем все чаты с двумя участниками и propertyId
     const conversations = await this.conversationRepository
       .createQueryBuilder('conversation')
       .leftJoinAndSelect('conversation.participants', 'user')
       .leftJoinAndSelect('conversation.messages', 'message')
       .leftJoinAndSelect('message.author', 'author')
+      .leftJoinAndSelect('conversation.property', 'property')
+      .where('conversation.property = :propertyId', { propertyId })
       .getMany();
     // Ищем чат, где участники — именно нужные два пользователя
     const found = conversations.find(conv => {
@@ -35,11 +44,12 @@ export class ChatService {
     // Если не найден — создаём новый
     const user1 = await this.userRepository.findOneOrFail({ where: { id: userId1 } });
     const user2 = await this.userRepository.findOneOrFail({ where: { id: userId2 } });
-    const conversation = this.conversationRepository.create({ participants: [user1, user2], messages: [] });
+    const property = await this.propertyRepository.findOneOrFail({ where: { id: propertyId } });
+    const conversation = this.conversationRepository.create({ participants: [user1, user2], messages: [], property });
     await this.conversationRepository.save(conversation);
     return this.conversationRepository.findOneOrFail({
       where: { id: conversation.id },
-      relations: ['participants', 'messages', 'messages.author'],
+      relations: ['participants', 'messages', 'messages.author', 'property'],
     });
   }
 
@@ -50,6 +60,7 @@ export class ChatService {
       .leftJoinAndSelect('conversation.participants', 'user')
       .leftJoinAndSelect('conversation.messages', 'message')
       .leftJoinAndSelect('message.author', 'author')
+      .leftJoinAndSelect('conversation.property', 'property')
       .getMany();
     // Оставляем только чаты, где есть этот пользователь и всего 2 участника
     return conversations.filter(conv =>
@@ -78,11 +89,15 @@ export class ChatService {
   async createMessage(content: string, conversationId: string, authorId: number): Promise<Message> {
     const conversation = await this.conversationRepository.findOne({
       where: { id: conversationId },
-      relations: ['participants'],
+      relations: ['participants', 'property'],
     });
     if (!conversation) throw new NotFoundException('Чат не найден');
     if (!conversation.participants.some(u => u.id === authorId)) {
       throw new ForbiddenException('Вы не участник этого чата');
+    }
+    // Проверка: если в чате только один участник (текущий пользователь), не даём писать самому себе
+    if (conversation.participants.length === 1 && conversation.participants[0].id === authorId) {
+      throw new ForbiddenException('Вы не можете писать сами себе по объекту');
     }
     const author = await this.userRepository.findOneOrFail({ where: { id: authorId } });
     const message = this.messageRepository.create({
@@ -90,6 +105,19 @@ export class ChatService {
       conversation,
       author,
     });
-    return this.messageRepository.save(message);
+    const saved = await this.messageRepository.save(message);
+    // Возвращаем сообщение с author и conversation (и property, и participants)
+    return this.messageRepository.findOneOrFail({
+      where: { id: saved.id },
+      relations: ['author', 'conversation', 'conversation.property', 'conversation.participants'],
+    });
+  }
+
+  // Обновить статус сообщения
+  async setMessageStatus(messageId: string, status: 'delivered' | 'read'): Promise<Message> {
+    const message = await this.messageRepository.findOneOrFail({ where: { id: messageId }, relations: ['author', 'conversation', 'conversation.property', 'conversation.participants'] });
+    message.status = status;
+    await this.messageRepository.save(message);
+    return message;
   }
 } 

@@ -39,13 +39,25 @@ export default function PropertiesPage() {
     center,
     setCenter
   } = usePropertiesContext();
-  const [activeTab, setActiveTab] = React.useState<'active' | 'archive'>('active');
+  const [activeTab, setActiveTab] = React.useState<'active' | 'archive' | 'my'>('active');
 
-  // Фильтрация по табу (активные/архив)
-  const filteredProperties = properties.filter(p => {
-    const status = (p.status || '').toString().toLowerCase();
-    return activeTab === 'active' ? status !== 'sold' : status === 'sold';
-  });
+  // Фильтрация по табу (активные/архив/мои)
+  const filteredProperties = properties
+    .filter(p => !!p.id && typeof p.id === 'number')
+    .filter(p => {
+      const status = (p.status || '').toString().toLowerCase();
+      if (activeTab === 'my') {
+        if (auth?.user?.role === 'agent') {
+          return p.agent?.id === auth.user.id || p.agentId === auth.user.id;
+        } else if (auth?.user?.role === 'director') {
+          if (auth.user.agencyId) {
+            return (p.agencyId && p.agencyId === auth.user.agencyId) || (p.agent && 'agencyId' in p.agent && p.agent.agencyId === auth.user.agencyId);
+          }
+          return true;
+        }
+      }
+      return activeTab === 'active' ? status !== 'sold' : status === 'sold';
+    });
 
   // Открыть большую карту с текущими фильтрами
   const handleOpenBigMap = () => {
@@ -82,10 +94,11 @@ export default function PropertiesPage() {
       <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 24px' }}>
         <Tabs
           activeKey={activeTab}
-          onChange={key => setActiveTab(key as 'active' | 'archive')}
+          onChange={key => setActiveTab(key as 'active' | 'archive' | 'my')}
           style={{ marginBottom: 24 }}
           items={[
             { key: 'active', label: 'Активные объекты' },
+            { key: 'my', label: 'Мои объекты' },
             { key: 'archive', label: 'Архив (Продано)' },
           ]}
         />

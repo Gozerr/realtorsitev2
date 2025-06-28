@@ -26,6 +26,18 @@ export class EducationEvent {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ nullable: true })
+  link: string;
+
+  @Column({ nullable: true })
+  img: string;
+
+  @Column({ nullable: true })
+  place: string;
+
+  @Column({ type: 'datetime', nullable: true })
+  endDate: Date;
+
   @CreateDateColumn()
   createdAt: Date;
 

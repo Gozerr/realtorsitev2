@@ -83,7 +83,7 @@ export const PropertiesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const isBboxTooSmall = validBbox && (Math.abs(bbox[2] - bbox[0]) < 0.001 || Math.abs(bbox[3] - bbox[1]) < 0.001);
       let url = '';
       if (validBbox && !isBboxTooLarge && !isBboxTooSmall) {
-        url = '/api/properties/map?bbox=' + bbox.join(',');
+        url = '/properties/map?bbox=' + bbox.join(',');
         if (filters.search) url += `&search=${encodeURIComponent(filters.search)}`;
         if (filters.minPrice) url += `&minPrice=${filters.minPrice}`;
         if (filters.maxPrice) url += `&maxPrice=${filters.maxPrice}`;
@@ -94,7 +94,7 @@ export const PropertiesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (filters.rooms) url += `&rooms=${filters.rooms}`;
         if (filters.poi && filters.poi.length > 0) url += `&poi=${filters.poi.join(',')}`;
       } else if (Object.keys(filters).length > 0) {
-        url = '/api/properties?';
+        url = '/properties?';
         if (filters.search) url += `search=${encodeURIComponent(filters.search)}&`;
         if (filters.minPrice) url += `minPrice=${filters.minPrice}&`;
         if (filters.maxPrice) url += `maxPrice=${filters.maxPrice}&`;
@@ -107,9 +107,9 @@ export const PropertiesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         url = url.replace(/&$/, '');
       } else {
         // Нет bbox и нет фильтров — подгружаем все объекты
-        url = '/api/properties';
+        url = '/properties';
       }
-      if (url.includes('/api/properties/map') && !validBbox) {
+      if (url.includes('/properties/map') && !validBbox) {
         setLoading(false);
         return;
       }
@@ -126,7 +126,7 @@ export const PropertiesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             );
             if (inBbox.length === 0) {
               // Fallback на все объекты
-              const all = await api.get('/api/properties');
+              const all = await api.get('/properties');
               setProperties(all.data);
             } else {
               setProperties(res.data);
