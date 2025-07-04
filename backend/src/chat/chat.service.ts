@@ -1,123 +1,135 @@
-import {
-  Injectable,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Conversation } from './conversation.entity';
+import { Chat } from './chat.entity';
 import { Message } from './message.entity';
 import { User } from '../users/user.entity';
 import { Property } from '../properties/property.entity';
+import { QueryFailedError } from 'typeorm';
+import { plainToInstance } from 'class-transformer';
+import { UserPublicDto } from '../users/dto/user-public.dto';
+
+export interface CreateMessageDto {
+  chatId: number;
+  authorId: number;
+  text: string;
+}
 
 @Injectable()
 export class ChatService {
   constructor(
-    @InjectRepository(Conversation)
-    private conversationRepository: Repository<Conversation>,
+    @InjectRepository(Chat)
+    private chatRepository: Repository<Chat>,
     @InjectRepository(Message)
     private messageRepository: Repository<Message>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-    @InjectRepository(Property)
-    private propertyRepository: Repository<Property>,
   ) {}
 
-  // Получить или создать чат между двумя пользователями по propertyId
-  async createOrGetConversation(userId1: number, userId2: number, propertyId: number): Promise<Conversation> {
-    if (userId1 === userId2) throw new ForbiddenException('Нельзя создать чат с самим собой');
-    // Получаем все чаты с двумя участниками и propertyId
-    const conversations = await this.conversationRepository
-      .createQueryBuilder('conversation')
-      .leftJoinAndSelect('conversation.participants', 'user')
-      .leftJoinAndSelect('conversation.messages', 'message')
-      .leftJoinAndSelect('message.author', 'author')
-      .leftJoinAndSelect('conversation.property', 'property')
-      .where('conversation.property = :propertyId', { propertyId })
-      .getMany();
-    // Ищем чат, где участники — именно нужные два пользователя
-    const found = conversations.find(conv => {
-      const ids = conv.participants.map(u => u.id).sort();
-      return ids.length === 2 && ids.includes(userId1) && ids.includes(userId2);
+  async findOrCreateChat(property: Property, buyer: User): Promise<Chat> {
+    if (!property.agent) throw new Error('Property has no agent (seller)');
+    const seller = property.agent;
+    let chat = await this.chatRepository.findOne({
+      where: {
+        property: { id: property.id },
+        seller: { id: seller.id },
+        buyer: { id: buyer.id },
+      },
+      relations: ['property', 'seller', 'buyer'],
     });
-    if (found) return found;
-    // Если не найден — создаём новый
-    const user1 = await this.userRepository.findOneOrFail({ where: { id: userId1 } });
-    const user2 = await this.userRepository.findOneOrFail({ where: { id: userId2 } });
-    const property = await this.propertyRepository.findOneOrFail({ where: { id: propertyId } });
-    const conversation = this.conversationRepository.create({ participants: [user1, user2], messages: [], property });
-    await this.conversationRepository.save(conversation);
-    return this.conversationRepository.findOneOrFail({
-      where: { id: conversation.id },
-      relations: ['participants', 'messages', 'messages.author', 'property'],
-    });
-  }
-
-  // Получить все чаты пользователя (только 1-1)
-  async getConversationsForUser(userId: number): Promise<Conversation[]> {
-    const conversations = await this.conversationRepository
-      .createQueryBuilder('conversation')
-      .leftJoinAndSelect('conversation.participants', 'user')
-      .leftJoinAndSelect('conversation.messages', 'message')
-      .leftJoinAndSelect('message.author', 'author')
-      .leftJoinAndSelect('conversation.property', 'property')
-      .getMany();
-    // Оставляем только чаты, где есть этот пользователь и всего 2 участника
-    return conversations.filter(conv =>
-      conv.participants.length === 2 && conv.participants.some(u => u.id === userId)
-    );
-  }
-
-  // Получить историю сообщений чата (только для участников)
-  async getMessages(conversationId: string, userId: number): Promise<Message[]> {
-    const conversation = await this.conversationRepository.findOne({
-      where: { id: conversationId },
-      relations: ['participants'],
-    });
-    if (!conversation) throw new NotFoundException('Чат не найден');
-    if (!conversation.participants.some(u => u.id === userId)) {
-      throw new ForbiddenException('Нет доступа к этому чату');
+    if (chat) return chat;
+    try {
+      chat = this.chatRepository.create({ property, seller, buyer });
+      await this.chatRepository.save(chat);
+      return chat;
+    } catch (err) {
+      if (err instanceof QueryFailedError && err.message.includes('UQ_property_seller_buyer')) {
+        const existing = await this.chatRepository.findOne({
+          where: {
+            property: { id: property.id },
+            seller: { id: seller.id },
+            buyer: { id: buyer.id },
+          },
+          relations: ['property', 'seller', 'buyer'],
+        });
+        if (!existing) throw new Error('Chat exists but cannot be found after unique constraint violation');
+        return existing;
+      }
+      throw err;
     }
-    return this.messageRepository.find({
-      where: { conversation: { id: conversationId } },
+  }
+
+  async getUserChats(user: User): Promise<any[]> {
+    const chats = await this.chatRepository.find({
+      where: [
+        { seller: { id: user.id } },
+        { buyer: { id: user.id } },
+      ],
+      relations: ['property', 'seller', 'buyer'],
+      order: { createdAt: 'DESC' },
+    });
+    return chats.map(chat => ({
+      ...chat,
+      seller: chat.seller ? plainToInstance(UserPublicDto, chat.seller) : undefined,
+      buyer: chat.buyer ? plainToInstance(UserPublicDto, chat.buyer) : undefined,
+      property: chat.property ? { ...chat.property } : undefined,
+    }));
+  }
+
+  async getChatMessages(chat: Chat): Promise<any[]> {
+    const chatId = chat.id;
+    console.log('[ChatService] getChatMessages for chat.id:', chatId);
+    const messages = await this.messageRepository.find({
+      where: { chatId },
       relations: ['author'],
       order: { createdAt: 'ASC' },
     });
+    console.log('[ChatService] getChatMessages found:', messages.length);
+    return messages.map(msg => ({
+      ...msg,
+      author: msg.author ? plainToInstance(UserPublicDto, msg.author) : (msg.authorId ? { id: msg.authorId } : undefined),
+    }));
   }
 
-  // Отправить сообщение (только участник чата)
-  async createMessage(content: string, conversationId: string, authorId: number): Promise<Message> {
-    const conversation = await this.conversationRepository.findOne({
-      where: { id: conversationId },
-      relations: ['participants', 'property'],
-    });
-    if (!conversation) throw new NotFoundException('Чат не найден');
-    if (!conversation.participants.some(u => u.id === authorId)) {
-      throw new ForbiddenException('Вы не участник этого чата');
-    }
-    // Проверка: если в чате только один участник (текущий пользователь), не даём писать самому себе
-    if (conversation.participants.length === 1 && conversation.participants[0].id === authorId) {
-      throw new ForbiddenException('Вы не можете писать сами себе по объекту');
-    }
-    const author = await this.userRepository.findOneOrFail({ where: { id: authorId } });
-    const message = this.messageRepository.create({
-      content,
-      conversation,
-      author,
-    });
-    const saved = await this.messageRepository.save(message);
-    // Возвращаем сообщение с author и conversation (и property, и participants)
-    return this.messageRepository.findOneOrFail({
-      where: { id: saved.id },
-      relations: ['author', 'conversation', 'conversation.property', 'conversation.participants'],
-    });
-  }
-
-  // Обновить статус сообщения
-  async setMessageStatus(messageId: string, status: 'delivered' | 'read'): Promise<Message> {
-    const message = await this.messageRepository.findOneOrFail({ where: { id: messageId }, relations: ['author', 'conversation', 'conversation.property', 'conversation.participants'] });
-    message.status = status;
+  async sendMessage(chat: Chat, author: User, text: string): Promise<Message> {
+    const message = this.messageRepository.create({ chat, author, text });
     await this.messageRepository.save(message);
-    return message;
+    const saved = await this.messageRepository.findOne({
+      where: { id: message.id },
+      relations: ['author'],
+    });
+    if (!saved) throw new Error('Message not found after save');
+    return saved;
+  }
+
+  async sendMessageDto(dto: CreateMessageDto): Promise<Message> {
+    console.log('[ChatService] sendMessageDto', dto);
+    const chat = await this.chatRepository.findOne({ where: { id: dto.chatId } });
+    if (!chat) {
+      console.error('[ChatService] sendMessageDto: Chat not found', dto.chatId);
+      throw new Error(`Chat with id ${dto.chatId} not found`);
+    }
+    const author = await this.messageRepository.manager.getRepository(User).findOne({ where: { id: dto.authorId } });
+    if (!author) {
+      console.error('[ChatService] sendMessageDto: User not found', dto.authorId);
+      throw new Error(`User with id ${dto.authorId} not found`);
+    }
+    const message = this.messageRepository.create({ chat, chatId: chat.id, author, authorId: author.id, text: dto.text });
+    await this.messageRepository.save(message);
+    const saved = await this.messageRepository.findOne({
+      where: { id: message.id },
+      relations: ['author'],
+    });
+    if (!saved) {
+      console.error('[ChatService] sendMessageDto: Message not found after save');
+      throw new Error('Message not found after save');
+    }
+    console.log('[ChatService] sendMessageDto: Message saved', saved);
+    return saved;
+  }
+
+  async getChatWithUsers(chatId: number): Promise<Chat | null> {
+    return this.chatRepository.findOne({
+      where: { id: chatId },
+      relations: ['seller', 'buyer'],
+    });
   }
 } 

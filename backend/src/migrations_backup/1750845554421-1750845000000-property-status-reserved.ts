@@ -6,7 +6,7 @@ export class PropertyStatusReserved1750845554421 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`
             CREATE TABLE "property" (
-                "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+                "id" SERIAL PRIMARY KEY NOT NULL,
                 "title" varchar NOT NULL,
                 "description" text NOT NULL,
                 "address" varchar NOT NULL,

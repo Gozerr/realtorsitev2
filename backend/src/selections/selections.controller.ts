@@ -13,6 +13,8 @@ import {
 import { SelectionsService } from './selections.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Response } from 'express';
+import PDFDocument from 'pdfkit';
+import * as fs from 'fs';
 
 @Controller('selections')
 export class SelectionsController {
@@ -83,8 +85,6 @@ export class SelectionsController {
   @UseGuards(JwtAuthGuard)
   @Get(':id/pdf')
   async getPdf(@Param('id') id: string, @Request() req, @Res() res: Response) {
-    const PDFDocument = require('pdfkit');
-    const fs = require('fs');
     const doc = new PDFDocument({ margin: 36, size: 'A4' });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=selection_${id}.pdf`);

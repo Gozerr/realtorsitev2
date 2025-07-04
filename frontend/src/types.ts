@@ -42,6 +42,7 @@ export interface Property {
   bathrooms?: number;
   isExclusive?: boolean;
   photos?: string[];
+  thumbnail?: string;
   agent?: {
     id: number;
     firstName: string;
@@ -49,6 +50,10 @@ export interface Property {
     email: string;
     phone?: string;
     photo?: string;
+    agency?: {
+      id: number;
+      name: string;
+    };
   };
   createdAt?: string;
   lat?: number;

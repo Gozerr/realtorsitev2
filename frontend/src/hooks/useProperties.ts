@@ -71,7 +71,7 @@ export function useProperties({
   // Получение объектов по bbox и фильтрам
   const fetchProperties = useCallback(async (newBbox?: [number, number, number, number], newFilters?: PropertiesFilters) => {
     setLoading(true);
-    let url = '/properties/map?';
+    let url = '/api/properties/map?';
     const bboxToUse = newBbox || bbox;
     if (bboxToUse) {
       url += `bbox=${bboxToUse.join(',')}`;
@@ -88,7 +88,7 @@ export function useProperties({
     if (f.poi && f.poi.length > 0) url += `&poi=${f.poi.join(',')}`;
     // Fallback: если bbox не задан, убираем bbox из url (или подгружаем все объекты по фильтрам)
     if (!bboxToUse) {
-      url = '/properties?';
+      url = '/api/properties?';
       if (f.search) url += `search=${encodeURIComponent(f.search)}&`;
       if (f.minPrice) url += `minPrice=${f.minPrice}&`;
       if (f.maxPrice) url += `maxPrice=${f.maxPrice}&`;
@@ -102,7 +102,7 @@ export function useProperties({
     }
     try {
       const res = await api.get(url);
-      setProperties(res.data);
+      setProperties(Array.isArray(res.data) ? res.data : res.data.properties || []);
     } catch (e) {
       setProperties([]);
     } finally {
@@ -152,7 +152,7 @@ export function useProperties({
 }
 
 export async function getAllProperties(filters: PropertiesFilters = {}): Promise<Property[]> {
-  let url = '/properties?';
+  let url = '/api/properties?';
   if (filters.search) url += `search=${encodeURIComponent(filters.search)}&`;
   if (filters.minPrice) url += `minPrice=${filters.minPrice}&`;
   if (filters.maxPrice) url += `maxPrice=${filters.maxPrice}&`;
@@ -164,7 +164,7 @@ export async function getAllProperties(filters: PropertiesFilters = {}): Promise
   if (filters.poi && filters.poi.length > 0) url += `poi=${filters.poi.join(',')}&`;
   url = url.replace(/&$/, '');
   const response = await api.get(url);
-  return response.data;
+  return Array.isArray(response.data) ? response.data : response.data.properties || [];
 }
 
 export function useAllProperties(initialFilters: PropertiesFilters = {}) {

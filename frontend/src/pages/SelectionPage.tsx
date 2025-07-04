@@ -5,6 +5,7 @@ import { fetchSelections, Selection, getSelectionById, getClientLikes, getClient
 import AddToSelectionModal from '../components/AddToSelectionModal';
 import { Property } from '../types';
 import { getAllProperties } from '../services/property.service';
+import OptimizedImage from '../components/OptimizedImage';
 
 const { Title } = Typography;
 
@@ -23,7 +24,7 @@ const SelectionPage: React.FC = () => {
       setSelections(data);
       setLoading(false);
     });
-    getAllProperties().then(setAllProperties);
+    getAllProperties().then(res => setAllProperties(res.properties));
   }, [modalOpen]);
 
   useEffect(() => {
@@ -100,6 +101,15 @@ const SelectionPage: React.FC = () => {
     });
   };
 
+  function getThumbnail(photo: string | undefined): string | undefined {
+    if (!photo) return undefined;
+    if (photo.startsWith('/uploads/objects/')) {
+      const parts = photo.split('/');
+      return ['/uploads', 'objects', 'thumbnails', ...parts.slice(3)].join('/');
+    }
+    return undefined;
+  }
+
   return (
     <div style={{ width: '100%', minHeight: '100vh', padding: '32px 40px 0 40px', background: 'var(--background-color)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
@@ -115,7 +125,7 @@ const SelectionPage: React.FC = () => {
       ) : (
         <Row gutter={[32, 32]}>
           {selections.map(sel => (
-            <Col xs={24} sm={12} md={8} lg={6} key={sel.id}>
+            <Col xs={24} sm={12} md={8} lg={6} key={sel.id} className="selection-card">
               <Card
                 style={{ borderRadius: 16, boxShadow: '0 2px 16px #e6eaf1', minHeight: 210, background: '#fff', padding: 0 }}
                 bodyStyle={{ padding: 24 }}
@@ -199,13 +209,15 @@ const SelectionPage: React.FC = () => {
                   margin: 0,
                   position: 'relative',
                 }}>
-                  {item.photos && item.photos.length > 0 ? (
-                    <img src={item.photos[0]} alt={item.title} style={{ width: 200, height: 150, objectFit: 'cover', borderRadius: '18px 0 0 18px', flexShrink: 0, background: '#f5f5f5' }} />
-                  ) : (
-                    <div style={{ width: 200, height: 150, background: '#f5f5f5', borderRadius: '18px 0 0 18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: 28, flexShrink: 0 }}>
-                      Нет фото
-                    </div>
-                  )}
+                  <OptimizedImage
+                    src={getThumbnail(item.photos && item.photos[0]) || (item.photos && item.photos[0]) || '/placeholder-property.jpg'}
+                    alt={item.title}
+                    width={200}
+                    height={150}
+                    style={{ objectFit: 'cover', borderRadius: '18px 0 0 18px', flexShrink: 0, background: '#f5f5f5' }}
+                    lazy={true}
+                    fallback="/placeholder-property.jpg"
+                  />
                   <div style={{ flex: 1, padding: '20px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                       <span style={{ fontWeight: 700, fontSize: 20, color: '#222' }}>{item.title}</span>
@@ -229,6 +241,13 @@ const SelectionPage: React.FC = () => {
           locale={{ emptyText: 'В подборке пока нет объектов' }}
         />
       </Modal>
+      <style>{`
+        @media (max-width: 767px) {
+          .selection-card {
+            margin-bottom: 16px;
+          }
+        }
+      `}</style>
     </div>
   );
 };

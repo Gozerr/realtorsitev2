@@ -17,7 +17,7 @@ export class EducationEvent {
   @Column({ nullable: true })
   description: string;
 
-  @Column({ type: 'datetime' })
+  @Column({ type: 'timestamp' })
   date: Date;
 
   @Column({ default: 'course' })
@@ -35,7 +35,7 @@ export class EducationEvent {
   @Column({ nullable: true })
   place: string;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   endDate: Date;
 
   @CreateDateColumn()

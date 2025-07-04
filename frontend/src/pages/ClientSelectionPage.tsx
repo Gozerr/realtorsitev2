@@ -3,8 +3,18 @@ import { useParams } from 'react-router-dom';
 import { getSelectionByClientToken, sendClientLike } from '../services/selection.service';
 import { Card, Button, Spin, Typography, Row, Col, message, Empty, Tooltip } from 'antd';
 import { LikeOutlined, DislikeOutlined } from '@ant-design/icons';
+import OptimizedImage from '../components/OptimizedImage';
 
 const { Title } = Typography;
+
+function getThumbnail(photo: string | undefined): string | undefined {
+  if (!photo) return undefined;
+  if (photo.startsWith('/uploads/objects/')) {
+    const parts = photo.split('/');
+    return ['/uploads', 'objects', 'thumbnails', ...parts.slice(3)].join('/');
+  }
+  return undefined;
+}
 
 const ClientSelectionPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
@@ -59,13 +69,15 @@ const ClientSelectionPage: React.FC = () => {
               style={{ borderRadius: 14, boxShadow: '0 2px 12px #e6eaf1', minHeight: 220, background: '#fff', padding: 0 }}
               bodyStyle={{ padding: 18 }}
             >
-              {item.photos && item.photos.length > 0 ? (
-                <img src={item.photos[0]} alt={item.title} style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 10, marginBottom: 12, background: '#f5f5f5' }} />
-              ) : (
-                <div style={{ width: '100%', height: 160, background: '#f5f5f5', borderRadius: 10, marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: 24 }}>
-                  Нет фото
-                </div>
-              )}
+              <OptimizedImage
+                src={getThumbnail(item.photos && item.photos[0]) || (item.photos && item.photos[0]) || '/placeholder-property.jpg'}
+                alt={item.title}
+                width="100%"
+                height={160}
+                style={{ objectFit: 'cover', borderRadius: 10, marginBottom: 12, background: '#f5f5f5' }}
+                lazy={true}
+                fallback="/placeholder-property.jpg"
+              />
               <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 4, color: '#222' }}>{item.title}</div>
               <div style={{ color: '#888', fontSize: 14, marginBottom: 6 }}>{item.address}</div>
               <div style={{ color: '#222', fontSize: 15, marginBottom: 2 }}><b>Цена:</b> {item.price} ₽</div>

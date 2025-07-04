@@ -5,7 +5,7 @@ export class ChangePhotosToJson1751024028933 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`
             CREATE TABLE "temporary_property" (
-                "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+                "id" SERIAL PRIMARY KEY NOT NULL,
                 "title" varchar NOT NULL,
                 "description" text NOT NULL,
                 "address" varchar NOT NULL,
@@ -43,7 +43,7 @@ export class ChangePhotosToJson1751024028933 implements MigrationInterface {
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`
             CREATE TABLE "temporary_property" (
-                "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+                "id" SERIAL PRIMARY KEY NOT NULL,
                 "title" varchar NOT NULL,
                 "description" text NOT NULL,
                 "address" varchar NOT NULL,

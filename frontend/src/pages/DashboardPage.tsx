@@ -4,7 +4,7 @@ import { getRecentProperties, createProperty, getStatistics, getAllProperties } 
 import { Property, CreatePropertyData } from '../types';
 import CreatePropertyForm from '../components/CreatePropertyForm';
 import PropertyCard from '../components/PropertyCard';
-import { Button, Modal, Spin, Alert, Row, Col, Card, Statistic, Typography, Divider } from 'antd';
+import { Button, Modal, Spin, Alert, Row, Col, Card, Statistic, Typography, Divider, Empty } from 'antd';
 import { HomeOutlined, CheckSquareOutlined, StarOutlined, PlusOutlined, FireOutlined, CalendarOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 
@@ -40,7 +40,7 @@ const DashboardPage = () => {
         getAllProperties(),
         getStatistics(),
       ]);
-      setProperties(propertiesData.slice(0, 20));
+      setProperties(propertiesData.properties.slice(0, 20));
       setStats(statsData);
     } catch (err) {
       setError('Failed to fetch dashboard data.');
@@ -77,7 +77,7 @@ const DashboardPage = () => {
       minHeight: '100vh',
       padding: '24px 0'
     }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+      <div style={{ width: '100%' }}>
         {/* Welcome Section */}
         <div className="welcome-section" style={{ 
           marginBottom: 32,
@@ -371,34 +371,12 @@ const DashboardPage = () => {
           <Spin spinning={loading}>
             {error && <Alert message="Ошибка" description={error} type="error" showIcon style={{ marginBottom: 24 }} />}
             
-            <Row gutter={[16, 16]}>
-              {properties.length > 0 ? (
-                properties.map(property => (
-                  <Col xs={24} sm={12} md={8} lg={8} key={property.id}>
-                    <PropertyCard property={property} mode="compact" />
-                  </Col>
-                ))
-              ) : (
-                !loading && (
-                  <Col span={24}>
-                    <div style={{ 
-                      textAlign: 'center', 
-                      padding: '48px 24px',
-                      background: 'var(--background-color)',
-                      borderRadius: '12px',
-                      border: '2px dashed var(--border-color)'
-                    }}>
-                      <HomeOutlined style={{ fontSize: '48px', color: 'var(--text-muted)', marginBottom: '16px' }} />
-                      <Title level={4} style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                        У вас пока нет объектов
-                      </Title>
-                      <p style={{ color: 'var(--text-muted)', margin: '8px 0 0 0' }}>
-                        Добавьте первый объект недвижимости, чтобы начать работу
-                      </p>
-                    </div>
-                  </Col>
-                )
-              )}
+            <Row gutter={[24, 24]} style={{ margin: 0 }}>
+              {properties.map(property => (
+                <Col xs={24} sm={12} md={8} lg={8} key={property.id} style={{ display: 'flex' }}>
+                  <PropertyCard property={property} />
+                </Col>
+              ))}
             </Row>
           </Spin>
         </Card>
@@ -423,6 +401,49 @@ const DashboardPage = () => {
           loading={loading}
         />
       </Modal>
+
+      <style>{`
+        @media (max-width: 991px) {
+          .welcome-section {
+            padding: 12px !important;
+            margin-bottom: 12px !important;
+          }
+          .dashboard-stats .ant-col {
+            width: 100% !important;
+            max-width: 100% !important;
+            flex: 0 0 100% !important;
+          }
+          .dashboard-stats .ant-card {
+            margin-bottom: 12px !important;
+          }
+          .ant-typography, .ant-typography h1, .ant-typography h2, .ant-typography h3 {
+            font-size: 18px !important;
+          }
+          .ant-btn, .ant-btn-lg {
+            width: 100% !important;
+            margin-bottom: 8px !important;
+          }
+          .dashboard-cards-row {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .ant-divider {
+            margin: 8px 0 !important;
+          }
+        }
+        @media (max-width: 575px) {
+          .welcome-section {
+            padding: 6px !important;
+            margin-bottom: 6px !important;
+          }
+          .dashboard-stats .ant-card {
+            padding: 8px !important;
+          }
+          .ant-typography, .ant-typography h1, .ant-typography h2, .ant-typography h3 {
+            font-size: 15px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

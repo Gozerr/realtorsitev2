@@ -5,6 +5,7 @@ import { getUserNotificationSettings, updateUserNotificationSettings } from '../
 import { updateProfile } from '../services/auth.service';
 import { User } from '../types';
 import { getCityByIP } from '../utils/geocode';
+import styles from '../components/AppLayout.module.css';
 
 const { Title, Text } = Typography;
 
@@ -196,31 +197,48 @@ export default function SettingsPage() {
   const [user, setUser] = useState(auth?.user || {});
   const [activeTab, setActiveTab] = useState('general');
   return (
-    <div style={{
-      width: '100%',
-      minHeight: '100vh',
-      padding: '0',
-      background: '#f7f9fb',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'stretch',
-    }}>
-      <h1 style={{ margin: '0 0 24px 0', textAlign: 'left', fontWeight: 400, fontSize: 32, letterSpacing: 0.5, color: '#222', textShadow: 'none', paddingLeft: 40 }}>
-        Настройки
-      </h1>
-      <div style={{ width: '100%', maxWidth: 1400, margin: '0 auto', flex: 1 }}>
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          items={[
-            { key: 'general', label: 'Общие', children: generalTab(user, setUser, auth?.setAuthData) },
-            { key: 'notifications', label: 'Уведомления', children: <NotificationSettingsTab /> },
-            { key: 'appearance', label: 'Внешний вид', children: appearanceTab },
-            { key: 'api', label: 'API и интеграции', children: apiTab },
-          ]}
-          style={{ background: 'transparent', width: '100%' }}
-          tabBarStyle={{ fontSize: 22, fontWeight: 700, marginBottom: 32, paddingLeft: 24 }}
-        />
+    <div className={styles.tabContent}>
+      <div style={{
+        width: '100%',
+        minHeight: '100vh',
+        padding: '0',
+        background: '#f7f9fb',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+      }}>
+        <h1 style={{ margin: '0 0 24px 0', textAlign: 'left', fontWeight: 400, fontSize: 32, letterSpacing: 0.5, color: '#222', textShadow: 'none', paddingLeft: 40 }}>
+          Настройки
+        </h1>
+        <div style={{ width: '100%', maxWidth: 1400, margin: '0 auto', flex: 1 }}>
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            items={[
+              { key: 'general', label: 'Общие', children: generalTab(user, setUser, auth?.setAuthData) },
+              { key: 'notifications', label: 'Уведомления', children: <NotificationSettingsTab /> },
+              { key: 'appearance', label: 'Внешний вид', children: appearanceTab },
+              { key: 'api', label: 'API и интеграции', children: apiTab },
+            ]}
+            style={{ background: 'transparent', width: '100%' }}
+            tabBarStyle={{ fontSize: 22, fontWeight: 700, marginBottom: 32, paddingLeft: 24 }}
+          />
+        </div>
+        <style>{`
+          @media (max-width: 767px) {
+            .settings-form {
+              padding: 16px;
+            }
+            .settings-form .ant-form-item {
+              flex-direction: column;
+              align-items: flex-start;
+            }
+            .settings-form .ant-form-item-label {
+              text-align: left;
+              width: 100%;
+            }
+          }
+        `}</style>
       </div>
     </div>
   );

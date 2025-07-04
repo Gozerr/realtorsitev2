@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Row, Col, Typography, Input, Button, Space, Segmented, Spin, Alert, Modal } from 'antd';
+import { Row, Col, Typography, Input, Button, Space, Segmented, Spin, Alert, Modal, Empty } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { AuthContext } from '../context/AuthContext';
 import { getClients, createClient } from '../services/client.service';
@@ -81,6 +81,7 @@ const ClientsPage: React.FC = () => {
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         allowClear
+        autoFocus
       />
 
       <Segmented
@@ -97,7 +98,7 @@ const ClientsPage: React.FC = () => {
       ) : (
         <>
           <Title level={4}>{filter}</Title>
-          <Row gutter={[16, 16]}>
+          <Row gutter={[16, 16]} className="staggered-list">
             {filteredClients.length > 0 ? (
               filteredClients.map(client => (
                 <Col xs={24} sm={12} md={8} key={client.id}>
@@ -106,7 +107,7 @@ const ClientsPage: React.FC = () => {
               ))
             ) : (
               <Col span={24}>
-                <Text>Клиенты не найдены.</Text>
+                <Empty description="Клиенты не найдены." style={{ marginTop: 60 }} />
               </Col>
             )}
           </Row>
@@ -125,6 +126,30 @@ const ClientsPage: React.FC = () => {
           loading={loading}
         />
       </Modal> */}
+
+      <style>{`
+        @media (max-width: 767px) {
+          .clients-filters {
+            flex-direction: column !important;
+            gap: 8px !important;
+            padding: 12px !important;
+          }
+          .client-card-col {
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+          }
+          .ant-btn {
+            font-size: 18px !important;
+            height: 48px !important;
+          }
+        }
+        @media (max-width: 991px) and (min-width: 768px) {
+          .client-card-col {
+            flex: 0 0 50% !important;
+            max-width: 50% !important;
+          }
+        }
+      `}</style>
     </Space>
   );
 };

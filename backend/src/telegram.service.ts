@@ -1,22 +1,54 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
-const TELEGRAM_BOT_TOKEN = '7887116584:AAEAwkMWa2UvWGQlVhJdc5HE1PEAjjMYeLA';
-const API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+@Injectable()
+export class TelegramService {
+  private readonly logger = new Logger(TelegramService.name);
+  private readonly botToken: string;
 
-export async function sendTelegramMessage(telegramId: string, text: string) {
-  if (!telegramId) return;
-  try {
-    await axios.post(API_URL, {
-      chat_id: telegramId,
-      text,
-      // parse_mode: 'HTML', // отключаем HTML
-    });
-  } catch (err) {
-    // Логируем ошибку подробно
-    if (axios.isAxiosError(err)) {
-      console.error('Ошибка отправки Telegram:', err.response?.data || err.message);
-    } else {
-      console.error('Неизвестная ошибка отправки Telegram:', err);
+  constructor(private configService: ConfigService) {
+    this.botToken = this.configService.get<string>('app.telegram.botToken') || '';
+  }
+
+  async sendTelegramMessage(telegramId: string, text: string): Promise<void> {
+    if (!telegramId || !text) {
+      this.logger.warn('Invalid telegramId or text provided');
+      return;
     }
+
+    if (!this.botToken) {
+      this.logger.warn('Telegram bot token not configured');
+      return;
+    }
+
+    try {
+      const API_URL = `https://api.telegram.org/bot${this.botToken}/sendMessage`;
+      
+      await axios.post(API_URL, {
+        chat_id: telegramId,
+        text,
+        parse_mode: 'HTML',
+      }, {
+        timeout: 10000, // 10 second timeout
+      });
+
+      this.logger.log(`Telegram message sent to ${telegramId}`);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        this.logger.error('Telegram API error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message,
+        });
+      } else {
+        this.logger.error('Unknown Telegram error:', error);
+      }
+    }
+  }
+
+  async sendTelegramNotification(telegramId: string, title: string, message: string): Promise<void> {
+    const formattedMessage = `🔔 <b>${title}</b>\n\n${message}`;
+    await this.sendTelegramMessage(telegramId, formattedMessage);
   }
 } 

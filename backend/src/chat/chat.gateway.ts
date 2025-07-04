@@ -1,106 +1,148 @@
 import {
   WebSocketGateway,
+  WebSocketServer,
   SubscribeMessage,
   MessageBody,
-  WebSocketServer,
   ConnectedSocket,
   OnGatewayConnection,
+  OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { JwtService } from '@nestjs/jwt';
 import { ChatService } from './chat.service';
-import * as jwt from 'jsonwebtoken';
+import { plainToInstance } from 'class-transformer';
+import { UserPublicDto } from '../users/dto/user-public.dto';
 
-@WebSocketGateway({
-  cors: {
-    origin: '*', // В боевом проекте лучше указать конкретный домен фронтенда
-  },
-})
-export class ChatGateway implements OnGatewayConnection {
+@WebSocketGateway({ cors: true })
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly chatService: ChatService) {}
+  constructor(private readonly chatService: ChatService, private readonly jwtService: JwtService) {}
 
   async handleConnection(client: Socket) {
-    // JWT-аутентификация через client.handshake.auth.token
-    const token = client.handshake.auth?.token;
+    const token =
+      client.handshake.query.token ||
+      client.handshake.auth?.token ||
+      client.handshake.headers['authorization']?.split(' ')[1];
+    console.log('[ChatGateway] handleConnection token:', token, 'query:', client.handshake.query, 'auth:', client.handshake.auth, 'headers:', client.handshake.headers);
     if (!token) {
-      client.disconnect();
-      return;
+      console.log('[ChatGateway] No token provided');
+      return client.disconnect();
     }
     try {
-      const payload = jwt.verify(token, 'SECRET_KEY') as any;
-      client.data.userId = payload.sub || payload.userId;
-    } catch (e) {
+      const payload = this.jwtService.verify(token);
+      (client as any).user = payload;
+      client.data.user = payload;
+      console.log('[ChatGateway] User connected:', payload);
+    } catch (err) {
+      console.log('[ChatGateway] Connection error:', err, 'token:', token);
       client.disconnect();
     }
+  }
+
+  handleDisconnect(client: Socket) {
+    console.log('[ChatGateway] User disconnected:', (client as any).user?.id);
+  }
+
+  @SubscribeMessage('getOrCreateChat')
+  async handleGetOrCreateChat(
+    @MessageBody() data: { propertyId: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const user = (client as any).user || client.data.user;
+    const userId = user?.id || user?.sub;
+    if (!userId) throw new Error('Unauthorized');
+    // Получаем property с relations: ['agent']
+    const propertyRepo = (this.chatService as any).chatRepository.manager.getRepository('Property');
+    const property = await propertyRepo.findOne({ where: { id: data.propertyId }, relations: ['agent'] });
+    if (!property) throw new Error('Property not found');
+    if (!property.agent) throw new Error('Property has no agent');
+    if (userId === property.agent.id) {
+      throw new Error('Agent cannot chat with themselves');
+    }
+    const chat = await this.chatService.findOrCreateChat(
+      property,
+      { id: userId } as any,
+    );
+    return { chatId: chat.id };
+  }
+
+  @SubscribeMessage('joinChat')
+  async handleJoinChat(@MessageBody() data: { chatId: number }, @ConnectedSocket() client: Socket) {
+    const user = (client as any).user || client.data.user;
+    const userId = user?.id || user?.sub;
+    const chat = await this.chatService.getChatWithUsers(data.chatId);
+    if (!chat) {
+      client.emit('error', { message: 'Чат не найден' });
+      return;
+    }
+    if (chat.seller.id !== userId && chat.buyer.id !== userId) {
+      client.emit('error', { message: 'Нет доступа к этому чату' });
+      return;
+    }
+    client.join(`chat_${data.chatId}`);
+    console.log('[ChatGateway] joinChat:', { userId, chatId: data.chatId, socketId: client.id });
   }
 
   @SubscribeMessage('sendMessage')
   async handleSendMessage(
-    @MessageBody() data: { conversationId: string; content: string },
-    @ConnectedSocket() client: Socket,
-  ): Promise<void> {
-    const authorId = client.data.userId;
-    if (!authorId) return;
-    console.log('[GATEWAY] handleSendMessage:', { authorId, data });
-    try {
-      const message = await this.chatService.createMessage(data.content, data.conversationId, authorId);
-      console.log('[GATEWAY] Message created:', message);
-      // Лог участников чата
-      const conv = await this.chatService['conversationRepository'].findOne({ where: { id: data.conversationId }, relations: ['participants'] });
-      if (conv) {
-        console.log('[GATEWAY] Участники чата:', conv.participants.map(u => ({ id: u.id, email: u.email })));
-      }
-      this.server.to(data.conversationId).emit('newMessage', message);
-    } catch (e) {
-      console.error('[GATEWAY] Ошибка в handleSendMessage:', e);
-      if (e instanceof Error && e.name === 'ForbiddenException') {
-        client.emit('sendMessageError', { message: e.message });
-      } else {
-        client.emit('sendMessageError', { message: 'Ошибка при отправке сообщения' });
-      }
-    }
-  }
-
-  @SubscribeMessage('joinRoom')
-  handleJoinRoom(
-    @MessageBody() conversationId: string,
+    @MessageBody() data: { propertyId: number; text: string; toUserId?: number },
     @ConnectedSocket() client: Socket,
   ) {
-    client.join(conversationId);
+    const user = (client as any).user || client.data.user;
+    console.log('[ChatGateway] sendMessage called', { user, data });
+    if (!user || (!user.id && !user.sub)) {
+      console.log('[ChatGateway] sendMessage: Unauthorized');
+      throw new Error('Unauthorized');
+    }
+    if (!data.propertyId) {
+      throw new Error('propertyId is required for chat');
+    }
+    const authorId = user.sub || user.id;
+    // Получаем property с relations: ['agent']
+    const propertyRepo = (this.chatService as any).chatRepository.manager.getRepository('Property');
+    const property = await propertyRepo.findOne({ where: { id: data.propertyId }, relations: ['agent'] });
+    if (!property) throw new Error('Property not found');
+    if (!property.agent) throw new Error('Property has no agent');
+    const seller = property.agent;
+    let buyerId: number;
+    if (authorId === seller.id) {
+      if (!data.toUserId) throw new Error('toUserId is required for seller');
+      buyerId = data.toUserId;
+    } else {
+      buyerId = authorId;
+    }
+    // Получаем чат и проверяем, что автор — участник
+    const chat = await this.chatService.findOrCreateChat(
+      property,
+      { id: buyerId } as any,
+    );
+    if (chat.seller.id !== authorId && chat.buyer.id !== authorId) {
+      throw new Error('Нет доступа к этому чату');
+    }
+    const message = await this.chatService.sendMessageDto({
+      chatId: chat.id,
+      authorId,
+      text: data.text,
+    });
+    // Сериализуем message.author через DTO
+    const safeMessage = {
+      ...message,
+      author: message.author ? plainToInstance(UserPublicDto, message.author) : undefined,
+    };
+    console.log('[ChatGateway] sendMessage emit receiveMessage', { chatId: chat.id, message: safeMessage });
+    this.server.to(`chat_${chat.id}`).emit('receiveMessage', safeMessage);
+    return { chatId: chat.id, message: safeMessage };
   }
 
-  // Публичный метод для отправки события newConversation участникам чата
-  emitNewConversation(conversation: any) {
-    if (!conversation || !conversation.id || !conversation.participants) return;
-    // Отправляем событие всем участникам (каждый должен быть в комнате с id чата)
-    this.server.to(conversation.id).emit('newConversation', conversation);
-  }
-
-  @SubscribeMessage('messageDelivered')
-  async handleMessageDelivered(
-    @MessageBody() data: { messageId: string },
+  @SubscribeMessage('typing')
+  async handleTyping(
+    @MessageBody() data: { chatId: number },
     @ConnectedSocket() client: Socket,
   ) {
-    try {
-      const updated = await this.chatService.setMessageStatus(data.messageId, 'delivered');
-      this.server.to(updated.conversation.id).emit('messageStatusUpdate', { messageId: updated.id, status: 'delivered' });
-    } catch (e) {
-      console.error('[GATEWAY] Ошибка в handleMessageDelivered:', e);
-    }
-  }
-
-  @SubscribeMessage('messageRead')
-  async handleMessageRead(
-    @MessageBody() data: { messageId: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    try {
-      const updated = await this.chatService.setMessageStatus(data.messageId, 'read');
-      this.server.to(updated.conversation.id).emit('messageStatusUpdate', { messageId: updated.id, status: 'read' });
-    } catch (e) {
-      console.error('[GATEWAY] Ошибка в handleMessageRead:', e);
-    }
+    const user = (client as any).user;
+    console.log('[ChatGateway] typing:', { userId: user?.id, chatId: data.chatId });
+    client.to(`chat_${data.chatId}`).emit('typing', { userId: user?.id });
   }
 } 

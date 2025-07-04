@@ -146,3 +146,68 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+# Authentication Flow & Security Best Practices
+
+## How Authentication Works
+
+- **Login:**
+  - User logs in via `/auth/login`.
+  - Backend returns `access_token` (JWT) in response body and sets `refresh_token` as httpOnly cookie.
+- **Access Token Usage:**
+  - Frontend stores `access_token` in localStorage (or in-memory for better security).
+  - All API requests include `Authorization: Bearer <access_token>` header.
+- **Token Refresh:**
+  - When `access_token` expires (API returns 401), frontend automatically calls `/auth/refresh` (cookie sent automatically).
+  - Backend validates `refresh_token` from cookie, issues new `access_token`.
+  - Frontend updates `access_token` in localStorage and retries the original request.
+- **Logout:**
+  - Frontend calls `/auth/logout`.
+  - Backend deletes `refresh_token` from DB and clears cookie.
+  - Frontend removes `access_token` from localStorage and redirects to login.
+
+## Security Recommendations
+
+- **Access Token:**
+  - Prefer storing in memory (not localStorage) to reduce XSS risk.
+  - If using localStorage, ensure strict Content Security Policy (CSP) and sanitize all user input.
+- **Refresh Token:**
+  - Always stored as httpOnly, Secure cookie (never accessible from JS).
+  - Cookie should have `SameSite=Lax` or `Strict` and `Secure` in production.
+- **CORS:**
+  - Only allow your frontend origin (e.g., `https://yourdomain.com`).
+  - `credentials: true` must be set for cookies to work.
+- **CSRF:**
+  - For APIs using only httpOnly cookies for auth, CSRF risk is low if CORS is strict.
+  - For extra protection, consider double-submit cookie or CSRF tokens for sensitive endpoints.
+- **HTTPS:**
+  - Always use HTTPS in production, otherwise Secure cookies will not work.
+- **Rate Limiting:**
+  - Already enabled via express-rate-limit.
+- **Logging:**
+  - Log all suspicious refresh attempts (invalid/expired tokens).
+
+## Example CORS Setup (see `src/main.ts`):
+
+```
+app.enableCors({
+  origin: [
+    'http://localhost:3000',
+    // 'https://your-production-domain.com',
+  ],
+  credentials: true,
+});
+```
+
+## Example Auth Flow Diagram
+
+1. User logs in → gets access_token (localStorage) + refresh_token (cookie)
+2. User makes API call with access_token
+3. If access_token expired → frontend calls /auth/refresh (cookie sent automatically)
+4. Backend validates refresh_token, issues new access_token
+5. Frontend updates access_token and retries request
+6. On logout, both tokens are invalidated
+
+---
+
+For more details, see `src/auth/` and `frontend/src/services/api.ts`.

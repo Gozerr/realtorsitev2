@@ -5,9 +5,7 @@ import { Selection } from './selection.entity';
 import { User } from '../users/user.entity';
 import { randomBytes } from 'crypto';
 import { Property } from '../properties/property.entity';
-const PDFDocument = require('pdfkit');
-const getStream = require('get-stream').default;
-import * as https from 'https';
+import * as PDFDocument from 'pdfkit';
 import syncRequest from 'sync-request';
 
 @Injectable()
@@ -98,10 +96,20 @@ export class SelectionsService {
   }
 
   async generatePdf(selectionId: number, user: User): Promise<Buffer | null> {
-    const doc = new PDFDocument({ margin: 36, size: 'A4' });
+    const selection = await this.findOneById(selectionId, user);
+    if (!selection) return null;
+
+    const doc = new (PDFDocument as any)({ margin: 36, size: 'A4' });
     doc.fontSize(20).text('Тестовая страница PDF', { align: 'center' });
     doc.end();
-    const buffer = await getStream(doc as any);
-    return buffer;
+    
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    
+    return new Promise((resolve) => {
+      doc.on('end', () => {
+        resolve(Buffer.concat(chunks));
+      });
+    });
   }
 } 

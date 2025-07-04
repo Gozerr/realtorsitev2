@@ -1,23 +1,13 @@
-import { DataSource } from 'typeorm';
+import { AppDataSource } from '../src/data-source';
 import { Property } from '../src/properties/property.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 import { User } from '../src/users/user.entity';
-import { Agency } from '../src/agencies/agency.entity';
-import { Client } from '../src/clients/client.entity';
 import axios from 'axios';
-
-// Настройте DataSource как в вашем проекте
-const AppDataSource = new DataSource({
-  type: 'sqlite', // или ваш тип БД
-  database: 'db.sqlite', // путь к вашей БД
-  entities: [Property, User, Agency, Client],
-  synchronize: false, // не меняйте структуру БД
-});
 
 // Задержка между запросами к геокодеру (чтобы не попасть под лимиты)
 function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function geocodeAddress(address: string): Promise<{ lat: number, lng: number } | null> {
@@ -45,15 +35,19 @@ async function importRecentObjects() {
   const data = fs.readFileSync(filePath, 'utf-8');
   const objects = JSON.parse(data);
 
+  const superuser = await userRepo.findOneBy({ email: 'superuser@example.com' });
+  if (!superuser) {
+    throw new Error('Пользователь superuser@example.com не найден!');
+  }
+
   for (const obj of objects) {
     // --- Новый способ: ищем пользователя по email ---
     let agent: User | null = null;
     if (obj.agentEmail) {
       agent = await userRepo.findOneBy({ email: obj.agentEmail });
-      if (!agent) {
-        console.warn(`Пользователь с email ${obj.agentEmail} не найден, объект пропущен: ${obj.title}`);
-        continue;
-      }
+    }
+    if (!agent) {
+      agent = superuser;
     }
 
     // Проверяем, есть ли уже такой объект (например, по адресу и цене)
@@ -72,6 +66,11 @@ async function importRecentObjects() {
         await delay(1000);
       }
 
+      let createdAt: Date = new Date();
+      if (obj.datePublished) {
+        const d = new Date(obj.datePublished);
+        createdAt = isNaN(d.getTime()) ? new Date() : d;
+      }
       const property = repo.create({
         title: obj.title ?? 'Без названия',
         description: obj.description ?? '',
@@ -83,7 +82,7 @@ async function importRecentObjects() {
         status: (obj.status as any) ?? 'for_sale',
         isExclusive: obj.isExclusive ?? false,
         photos: obj.images ?? [],
-        createdAt: obj.datePublished ? new Date(obj.datePublished) : new Date(),
+        createdAt,
         agent: agent ?? null,
         lat,
         lng,

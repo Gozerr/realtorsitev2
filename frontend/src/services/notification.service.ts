@@ -1,8 +1,9 @@
 import api from './api';
 import { io } from 'socket.io-client';
 
-// Адрес socket.io берём из переменной окружения или по умолчанию
-const SOCKET_IO_URL = process.env.REACT_APP_SOCKET_IO_URL || 'http://localhost:3000';
+// Always use backend on port 3001 for notifications WebSocket, regardless of frontend port
+const BACKEND_HOST = window.location.hostname;
+const SOCKET_IO_URL = `http://${BACKEND_HOST}:3001`;
 
 let socket: ReturnType<typeof io> | null = null;
 let currentUserId: number | null = null;
@@ -45,34 +46,34 @@ export function subscribeToNotifications(userId: number, onNotification: (notif:
 }
 
 export const getAllNotifications = async () => {
-  const res = await api.get('/notifications');
+  const res = await api.get('/api/notifications');
   return res.data;
 };
 
 export const getUserNotifications = async (userId: number) => {
-  const res = await api.get(`/notifications/user/${userId}`);
+  const res = await api.get(`/api/notifications/user/${userId}`);
   return res.data;
 };
 
 export const createNotification = async (data: any) => {
-  const res = await api.post('/notifications', data);
+  const res = await api.post('/api/notifications', data);
   return res.data;
 };
 
 export const markNotificationAsRead = async (id: number) => {
-  await api.patch(`/notifications/${id}/read`);
+  await api.patch(`/api/notifications/${id}/read`);
 };
 
 export const removeNotification = async (id: number) => {
-  await api.delete(`/notifications/${id}`);
+  await api.delete(`/api/notifications/${id}`);
 };
 
 export const getUserNotificationSettings = async (userId: number) => {
-  const res = await api.get(`/notifications/settings/${userId}`);
+  const res = await api.get(`/api/notifications/settings/${userId}`);
   return res.data;
 };
 
 export const updateUserNotificationSettings = async (userId: number, data: any) => {
-  const res = await api.post(`/notifications/settings/${userId}`, data);
+  const res = await api.post(`/api/notifications/settings/${userId}`, data);
   return res.data;
 }; 

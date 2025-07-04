@@ -13,12 +13,12 @@ export type CalendarEvent = {
 };
 
 export async function fetchCalendarEvents(): Promise<CalendarEvent[]> {
-  const res = await api.get<CalendarEvent[]>('/calendar');
+  const res = await api.get<CalendarEvent[]>('/api/calendar');
   return res.data;
 }
 
 export async function createCalendarEvent(event: Partial<CalendarEvent>): Promise<CalendarEvent> {
-  const res = await api.post<CalendarEvent>('/calendar', event);
+  const res = await api.post<CalendarEvent>('/api/calendar', event);
   return res.data;
 }
 

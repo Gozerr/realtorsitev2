@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { Tabs, Input, Button, Avatar, Row, Col, Typography, Upload, message, Card, Select } from 'antd';
-import { UserOutlined, HomeOutlined, FileTextOutlined, CreditCardOutlined, UploadOutlined } from '@ant-design/icons';
+import { UserOutlined, HomeOutlined, FileTextOutlined, CreditCardOutlined, UploadOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { AuthContext } from '../context/AuthContext';
 import { updateProfile, getProfile } from '../services/auth.service';
 import { uploadAvatar } from '../services/upload.service';
@@ -65,8 +65,11 @@ export default function ProfilePage() {
     }
   }, [user?.agencyId, authContext?.token]);
 
+  if (authContext && authContext.user === undefined) {
+    return <div style={{ padding: 32 }}>Загрузка...</div>;
+  }
   if (!user) {
-    return <div style={{ padding: 32 }}>Нет данных о пользователе</div>;
+    return <div style={{ padding: 32 }}>Ошибка загрузки профиля. Попробуйте перезайти.</div>;
   }
 
   const handleAvatarUpload = async (file: File) => {
@@ -94,10 +97,18 @@ export default function ProfilePage() {
       const freshProfile = await getProfile(authContext.token);
       authContext.setAuthData(authContext.token, freshProfile);
       localStorage.setItem('user', JSON.stringify(freshProfile));
-      message.success('Аватар успешно обновлен!');
+      message.success({
+        content: 'Аватар успешно обновлён!',
+        duration: 3,
+        icon: React.createElement(CheckCircleOutlined, { style: { color: '#52c41a' } }),
+      });
     } catch (error) {
       console.error('Upload error:', error);
-      message.error('Ошибка при обновлении аватара');
+      message.error({
+        content: 'Ошибка при обновлении аватара',
+        duration: 4,
+        icon: React.createElement(CloseCircleOutlined, { style: { color: '#ff4d4f' } }),
+      });
     } finally {
       setUploading(false);
     }
@@ -140,16 +151,47 @@ export default function ProfilePage() {
         authContext.setAuthData(authContext.token, freshProfile);
         localStorage.setItem('user', JSON.stringify(freshProfile));
       }
-      message.success('Профиль обновлен!');
+      message.success({
+        content: 'Профиль обновлён!',
+        duration: 3,
+        icon: React.createElement(CheckCircleOutlined, { style: { color: '#52c41a' } }),
+      });
       setIsEditing(false);
     } catch (error) {
-      message.error('Ошибка при обновлении профиля');
+      message.error({
+        content: 'Ошибка при обновлении профиля',
+        duration: 4,
+        icon: React.createElement(CloseCircleOutlined, { style: { color: '#ff4d4f' } }),
+      });
     }
   };
+
+  // Вычисляем src для аватара: если есть thumbnail, используем его, иначе пробуем получить из photo
+  let avatarSrc = user?.photo || user?.avatar || undefined;
+  if (avatarSrc && typeof avatarSrc === 'string' && avatarSrc.includes('/avatars/') && !avatarSrc.includes('/thumbnails/')) {
+    const thumb = avatarSrc.replace('/avatars/', '/avatars/thumbnails/');
+    avatarSrc = thumb;
+  }
 
   return (
     <div style={{ width: '100%', minHeight: '100vh' }}>
       <h1 style={{ marginBottom: 24 }}>Мой профиль</h1>
+      <style>{`
+        @media (max-width: 767px) {
+          .profile-main {
+            flex-direction: column !important;
+            gap: 16px !important;
+            padding: 12px !important;
+          }
+          .ant-btn, .ant-input, .ant-select {
+            font-size: 18px !important;
+            height: 48px !important;
+          }
+          .ant-tabs-nav {
+            flex-wrap: wrap !important;
+          }
+        }
+      `}</style>
       <Tabs
         activeKey={activeTab}
         onChange={setActiveTab}
@@ -174,6 +216,7 @@ export default function ProfilePage() {
               }}>
                 <div style={{ position: 'relative', marginBottom: 8 }}>
                   <Upload
+                    name="file"
                     showUploadList={false}
                     beforeUpload={file => { handleAvatarUpload(file); return false; }}
                     accept="image/*"
@@ -186,7 +229,7 @@ export default function ProfilePage() {
                     >
                       <Avatar
                         size={180}
-                        src={user?.photo || user?.avatar || undefined}
+                        src={avatarSrc}
                         style={{ borderRadius: 24, width: 180, height: 180, objectFit: 'cover', boxShadow: '0 4px 24px #b3c6e0', background: '#f5f7fa' }}
                         shape="square"
                       >

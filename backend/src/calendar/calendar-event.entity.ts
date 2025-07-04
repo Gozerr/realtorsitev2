@@ -24,10 +24,10 @@ export class CalendarEvent {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'datetime' })
+  @Column({ type: 'timestamp' })
   start: Date;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   end: Date;
 
   @Column({ type: 'varchar', default: 'personal' })

@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import {
   Layout,
   Menu,
@@ -13,6 +13,8 @@ import {
   AutoComplete,
   Button,
   Tooltip,
+  Alert,
+  Drawer,
 } from 'antd';
 import {
   HomeOutlined,
@@ -29,30 +31,16 @@ import {
   MoonOutlined,
   UpOutlined,
   CalendarOutlined,
+  MenuOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import HeaderChatDropdown from './HeaderChatDropdown';
 import NotificationDropdown from '../pages/NotificationDropdown';
 import { useTheme } from '../context/ThemeContext';
-import { TutorialProvider } from '../context/TutorialContext';
-import TutorialOverlay from './TutorialOverlay';
-import { faq } from '../pages/EducationPage';
 import { getRecentProperties } from '../services/property.service';
 import { Property } from '../types';
 import { fetchEducationEvents, EducationEvent } from '../services/education.service';
-import { ChatContext } from '../context/ChatContext';
-
-// --- Заглушки для чатов и уведомлений (замените на реальные сервисы) ---
-const getChats = async () => [
-  { id: 1, title: 'Чат с Иваном', lastMessage: 'Добрый день!', path: '/chats/1' },
-  { id: 2, title: 'Общий чат', lastMessage: 'Встреча завтра', path: '/chats/2' },
-];
-const getNotifications = async () => [
-  { id: 1, title: 'Новое сообщение', description: 'Вам пришло новое сообщение', path: '/notifications' },
-  { id: 2, title: 'Обновление объекта', description: 'Объект обновлён', path: '/notifications' },
-];
-// ----------------------------------------------------------------------
+import styles from './AppLayout.module.css';
 
 const { Header, Content, Sider } = Layout;
 const { Title } = Typography;
@@ -61,13 +49,26 @@ const menuItems = [
   { key: '/', icon: <AppstoreOutlined style={{ color: '#296fff' }} />, label: 'Главная', path: '/' },
   { key: '/properties', icon: <HomeOutlined style={{ color: '#6c63ff' }} />, label: 'Объекты недвижимости', path: '/properties' },
   { key: '/clients', icon: <TeamOutlined style={{ color: '#e85aad' }} />, label: 'Мои клиенты', path: '/clients' },
+  { key: '/my-chats', icon: <MessageOutlined style={{ color: '#1976d2' }} />, label: 'Мои чаты', path: '/my-chats' },
   { key: '/selection', icon: <FolderOpenOutlined style={{ color: '#ff9800' }} />, label: 'Подбор', path: '/selection' },
-  { key: '/chats', icon: <MessageOutlined style={{ color: '#4caf50' }} />, label: 'Чаты', path: '/chats' },
   { key: '/notifications', icon: <NotificationOutlined style={{ color: '#ff9800' }} />, label: 'Уведомления', path: '/notifications' },
   { key: '/education', icon: <ReadOutlined style={{ color: '#296fff' }} />, label: 'Обучение', path: '/education' },
   { key: '/profile', icon: <UserOutlined style={{ color: '#4caf50' }} />, label: 'Мой профиль', path: '/profile' },
   { key: '/settings', icon: <SettingOutlined style={{ color: '#888' }} />, label: 'Настройки', path: '/settings' },
 ];
+
+// Для интеграции с туториалом
+const TUTORIAL_STEP_KEY = 'realtor_tutorial_step';
+const tutorialMenuMap: Record<number, string> = {
+  0: '/', // Главная
+  1: '/properties',
+  2: '/clients',
+  3: '/selection',
+  4: '/notifications',
+  5: '/education',
+  6: '/profile',
+  7: '/settings',
+};
 
 const AppLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -80,7 +81,16 @@ const AppLayout: React.FC = () => {
   const [searchOptions, setSearchOptions] = useState<any[]>([]);
   const [searchData, setSearchData] = useState<any[]>([]);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const chatContext = useContext(ChatContext);
+  const [isOnline, setIsOnline] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Определяем, мобильный ли экран
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 992);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
@@ -91,16 +101,16 @@ const AppLayout: React.FC = () => {
       } catch {}
 
       // 2. Чаты
-      let chats: any[] = [];
-      try {
-        chats = await getChats();
-      } catch {}
+      // let chats: any[] = [];
+      // try {
+      //   chats = await getChats();
+      // } catch {}
 
       // 3. Уведомления
-      let notifications: any[] = [];
-      try {
-        notifications = await getNotifications();
-      } catch {}
+      // let notifications: any[] = [];
+      // try {
+      //   notifications = await getNotifications();
+      // } catch {}
 
       // 4. Обучение, профиль, агентство
       let educationEvents: EducationEvent[] = [];
@@ -126,14 +136,6 @@ const AppLayout: React.FC = () => {
           tab: 'courses',
           description: c.description
         })),
-        ...faq.map(f => ({
-          type: 'FAQ',
-          label: f.q,
-          value: f.q,
-          path: '/education',
-          tab: 'faq',
-          description: f.a
-        })),
         {
           type: 'Профиль',
           label: authContext?.user?.firstName + ' ' + authContext?.user?.lastName,
@@ -154,27 +156,25 @@ const AppLayout: React.FC = () => {
       }));
 
       // 6. Чаты
-      const chatData = chats.map((c) => ({
-        type: 'Чат',
-        label: c.title,
-        value: c.title,
-        path: c.path || `/chats/${c.id}`,
-        description: c.lastMessage || ''
-      }));
+      // const chatData = chats.map((c) => ({
+      //   type: 'Чат',
+      //   label: c.title,
+      //   value: c.title,
+      //   path: c.path || `/chats/${c.id}`,
+      //   description: c.lastMessage || ''
+      // }));
 
       // 7. Уведомления
-      const notificationData = notifications.map((n) => ({
-        type: 'Уведомление',
-        label: n.title,
-        value: n.title,
-        path: n.path || `/notifications/${n.id}`,
-        description: n.description || ''
-      }));
+      // const notificationData = notifications.map((n) => ({
+      //   type: 'Уведомление',
+      //   label: n.title,
+      //   value: n.title,
+      //   path: n.path || `/notifications/${n.id}`,
+      //   description: n.description || ''
+      // }));
 
       setSearchData([
         ...propertyData,
-        ...chatData,
-        ...notificationData,
         ...educationData,
       ]);
     }
@@ -188,6 +188,18 @@ const AppLayout: React.FC = () => {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    setIsOnline(window.navigator.onLine);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   const scrollToTop = () => {
@@ -227,16 +239,24 @@ const AppLayout: React.FC = () => {
         </div>
       </div>
       <div style={{ padding: '8px 0', cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={() => handleProfileMenu('profile')}>
-        <UserOutlined style={{ marginRight: 8, color: 'var(--success-color)' }} /> Мой профиль
+        <Tooltip title="Профиль">
+          <UserOutlined style={{ marginRight: 8, color: 'var(--success-color)' }} /> Мой профиль
+        </Tooltip>
       </div>
       <div style={{ padding: '8px 0', cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={() => handleProfileMenu('settings')}>
-        <SettingOutlined style={{ marginRight: 8, color: 'var(--text-secondary)' }} /> Настройки
+        <Tooltip title="Настройки">
+          <SettingOutlined style={{ marginRight: 8, color: 'var(--text-secondary)' }} /> Настройки
+        </Tooltip>
       </div>
       <div style={{ padding: '8px 0', cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={toggleTheme}>
         {theme === 'light' ? (
-          <MoonOutlined style={{ marginRight: 8, color: 'var(--text-secondary)' }} />
+          <Tooltip title="Темная тема">
+            <MoonOutlined style={{ marginRight: 8, color: 'var(--text-secondary)' }} />
+          </Tooltip>
         ) : (
-          <SunOutlined style={{ marginRight: 8, color: 'var(--text-secondary)' }} />
+          <Tooltip title="Светлая тема">
+            <SunOutlined style={{ marginRight: 8, color: 'var(--text-secondary)' }} />
+          </Tooltip>
         )}
         {theme === 'light' ? 'Темная тема' : 'Светлая тема'}
         <Switch 
@@ -261,7 +281,10 @@ const AppLayout: React.FC = () => {
         onMouseOver={e => (e.currentTarget.style.background = 'var(--border-light)')}
         onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
       >
-        <LogoutOutlined style={{ marginRight: 8, color: 'var(--error-color)', fontSize: 18 }} /> Выйти
+        <Tooltip title="Выйти">
+          <LogoutOutlined style={{ marginRight: 8, color: 'var(--error-color)', fontSize: 18 }} />
+        </Tooltip>
+        Выйти
       </div>
     </div>
   );
@@ -298,54 +321,58 @@ const AppLayout: React.FC = () => {
     setSearchOptions([]);
   };
 
-  // Считаем количество чатов с непрочитанными сообщениями для текущего пользователя
-  const unreadChatsCount = (chatContext.conversations || []).filter(conv =>
-    conv.messages && conv.messages.some(msg =>
-      msg.author.id !== authContext?.user?.id && msg.status !== 'read'
-    )
-  ).length;
+  // После монтирования добавляем data-tutorial к DOM-элементам меню
+  useEffect(() => {
+    const menuMap = [
+      { key: '/', tutorial: 'sidebar-main' },
+      { key: '/properties', tutorial: 'sidebar-properties' },
+      { key: '/clients', tutorial: 'sidebar-clients' },
+      { key: '/selection', tutorial: 'sidebar-selection' },
+      { key: '/notifications', tutorial: 'sidebar-notifications' },
+      { key: '/education', tutorial: 'sidebar-education' },
+      { key: '/profile', tutorial: 'sidebar-profile' },
+      { key: '/settings', tutorial: 'sidebar-settings' },
+    ];
+    menuMap.forEach(({ key, tutorial }) => {
+      const el = document.querySelector(`.ant-menu-item[data-menu-id='${key}']`);
+      if (el) el.setAttribute('data-tutorial', tutorial);
+    });
+    // Поиск
+    const searchInput = document.querySelector('.header-search input');
+    if (searchInput) searchInput.setAttribute('data-tutorial', 'header-search');
+    // Уведомления (ищем иконку колокольчика)
+    const notifIcon = document.querySelector('.anticon-bell');
+    if (notifIcon) notifIcon.setAttribute('data-tutorial', 'header-notifications');
+    // Календарь (ищем кнопку с иконкой календаря)
+    const calendarBtn = document.querySelector('.ant-btn .anticon-calendar');
+    if (calendarBtn && calendarBtn.parentElement) calendarBtn.parentElement.setAttribute('data-tutorial', 'header-calendar');
+  }, []);
 
   return (
-    <TutorialProvider>
-      <Layout style={{ minHeight: '100vh' }}>
-        <Sider 
-          collapsible 
-          collapsed={collapsed} 
+    <Layout style={{ minHeight: '100vh' }}>
+      {/* Sider для десктопа, Drawer для мобильных */}
+      {!isMobile ? (
+        <Sider
+          collapsible
+          collapsed={collapsed}
           onCollapse={setCollapsed}
-          style={{
-            background: 'var(--surface-color)',
-            display: 'flex',
-            flexDirection: 'column',
-            width: 240,
-            minWidth: 240,
-            maxWidth: 240,
-            borderRight: '1px solid var(--border-color)',
-            boxShadow: '0 0 0 1px var(--border-color)',
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            height: '100vh',
-            zIndex: 100,
-          }}
           width={240}
+          className={styles.sidebar}
+          breakpoint="lg"
+          trigger={null}
         >
           <div style={{ height: '48px', margin: '24px 0 32px 0', color: 'var(--text-primary)', textAlign: 'center', fontWeight: 700, fontSize: 24, letterSpacing: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             <AppstoreOutlined style={{ fontSize: 28, color: 'var(--primary-color)', marginRight: 6 }} />
             РиэлтиПро
           </div>
-          <Menu 
-            theme="light" 
-            selectedKeys={[location.pathname]}
+          <Menu
             mode="inline"
-            items={menuItems.map((item) => ({
-              ...item,
-              label: <span style={{ fontSize: 15, fontWeight: 400 }}>{item.label}</span>,
-              style: { fontSize: 15, fontWeight: 400, height: 44, display: 'flex', alignItems: 'center' },
-              className: `sidebar-${item.key.replace('/', '')}`,
-              'data-menu-id': item.key
-            }))}
-            onClick={({ key }) => navigate(key)}
-            style={{ flex: 1, borderRight: 0, background: 'var(--surface-color)' }}
+            selectedKeys={[location.pathname]}
+            onClick={handleMenuClick}
+            style={{ flex: 1, borderRight: 0 }}
+            items={menuItems.map(item => {
+              return { ...item, 'data-menu-id': item.key };
+            })}
           />
           <div style={{ marginTop: 'auto', padding: 0 }}>
             <div
@@ -372,121 +399,190 @@ const AppLayout: React.FC = () => {
               onMouseOver={e => (e.currentTarget.style.background = 'var(--border-light)')}
               onMouseOut={e => (e.currentTarget.style.background = 'var(--surface-color)')}
             >
-              <LogoutOutlined style={{ fontSize: 18, marginRight: 12, color: 'var(--error-color)' }} />
+              <Tooltip title="Выйти">
+                <LogoutOutlined style={{ fontSize: 18, marginRight: 12, color: 'var(--error-color)' }} />
+              </Tooltip>
               <span style={{ fontSize: 15, fontWeight: 400 }}>Выйти</span>
             </div>
           </div>
         </Sider>
-        <Layout style={{ minHeight: '100vh', marginLeft: 240 }}>
-          <Header className="site-layout-background" style={{
-            padding: '0 24px',
-            background: 'var(--surface-color)',
-            height: 60,
-            boxShadow: '0 4px 24px var(--shadow-light)',
+      ) : (
+        <Drawer
+          title="Меню"
+          placement="left"
+          onClose={() => setMobileMenuOpen(false)}
+          open={mobileMenuOpen}
+          bodyStyle={{ padding: 0 }}
+          width={220}
+        >
+          <Menu
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            onClick={item => {
+              handleMenuClick(item);
+              setMobileMenuOpen(false);
+            }}
+            items={menuItems.map(item => {
+              return { ...item, 'data-menu-id': item.key };
+            })}
+            style={{ height: '100%', borderRight: 0 }}
+          />
+          <div style={{ marginTop: 'auto', padding: 0 }}>
+            <div
+              onClick={handleLogout}
+              style={{
+                width: '100%',
+                background: 'var(--surface-color)',
+                border: 'none',
+                borderRadius: 0,
+                fontSize: 15,
+                fontWeight: 400,
+                color: 'var(--text-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                cursor: 'pointer',
+                transition: 'background 0.2s',
+                height: 44,
+                marginBottom: 0,
+                paddingLeft: 24,
+                paddingRight: 16,
+                marginTop: 0,
+              }}
+              onMouseOver={e => (e.currentTarget.style.background = 'var(--border-light)')}
+              onMouseOut={e => (e.currentTarget.style.background = 'var(--surface-color)')}
+            >
+              <Tooltip title="Выйти">
+                <LogoutOutlined style={{ fontSize: 18, marginRight: 12, color: 'var(--error-color)' }} />
+              </Tooltip>
+              <span style={{ fontSize: 15, fontWeight: 400 }}>Выйти</span>
+            </div>
+          </div>
+        </Drawer>
+      )}
+      {/* Основной контент */}
+      <Layout style={{ marginLeft: 240 }}>
+        <Layout.Header
+          className={styles.headerFixed + ' site-layout-background'}
+          style={{
+            padding: isMobile ? '0 8px' : '0 24px',
+            height: isMobile ? 56 : 64,
+            boxShadow: '0 2px 8px rgba(40,60,90,0.10)',
+            borderBottom: '1px solid #e6eaf1',
             display: 'flex',
             alignItems: 'center',
-            position: 'sticky',
+            position: 'fixed',
             top: 0,
-            zIndex: 100,
-          }}>
-            <Row justify="space-between" align="middle" style={{ width: '100%' }}>
-              <Col flex="1 1 0%" style={{ maxWidth: 700, marginRight: 32 }}>
-                <AutoComplete
-                  value={searchValue}
-                  options={searchOptions}
-                  style={{ width: '100%', fontSize: 18 }}
-                  onSearch={handleSearch}
-                  onSelect={handleSelect}
-                  placeholder="Поиск по сайту..."
-                  allowClear
-                  filterOption={false}
-                  size="large"
-                  className="header-search"
-                />
-              </Col>
-              <Col flex="none">
-                <Space size="large">
-                  <Popover content={<HeaderChatDropdown />} trigger="click" placement="bottomRight">
-                    <Badge count={unreadChatsCount} overflowCount={9} offset={[8, 0]}>
-                      <MessageOutlined style={{ fontSize: '22px', cursor: 'pointer', transition: 'color 0.2s', color: 'var(--text-secondary)' }} />
-                    </Badge>
-                  </Popover>
-                  <NotificationDropdown />
-                  <Link to="/calendar" style={{ marginLeft: 16 }}>
-                    <Tooltip title="Календарь">
-                      <CalendarOutlined style={{ fontSize: 24, color: '#1976d2', cursor: 'pointer' }} />
-                    </Tooltip>
-                  </Link>
-                  <SettingOutlined style={{ fontSize: '22px', cursor: 'pointer', transition: 'color 0.2s', color: 'var(--text-secondary)' }} onClick={() => navigate('/settings')} />
-                  {theme === 'light' ? (
-                    <SunOutlined 
-                      className="theme-toggle"
-                      style={{ fontSize: '22px', cursor: 'pointer', transition: 'color 0.2s', color: 'var(--text-secondary)' }} 
-                      onClick={toggleTheme} 
+            left: isMobile ? 0 : 240,
+            width: isMobile ? '100vw' : 'calc(100vw - 240px)',
+            zIndex: 1100,
+            transition: 'left 0.2s, width 0.2s',
+          }}
+        >
+          {isMobile && (
+            <Tooltip title="Меню">
+              <Button
+                type="text"
+                icon={<MenuOutlined style={{ fontSize: 24 }} />}
+                onClick={() => setMobileMenuOpen(true)}
+                style={{ marginRight: 16 }}
+              />
+            </Tooltip>
+          )}
+          <Row justify="space-between" align="middle" style={{ width: '100%' }}>
+            <Col flex="1 1 0%" style={{ maxWidth: 700, marginRight: 32 }}>
+              <AutoComplete
+                value={searchValue}
+                options={searchOptions}
+                style={{ width: '100%', fontSize: 18 }}
+                onSearch={handleSearch}
+                onSelect={handleSelect}
+                placeholder="Поиск по сайту..."
+                allowClear
+                filterOption={false}
+                size="large"
+                className="header-search"
+              />
+            </Col>
+            <Col flex="none">
+              <Space size="large">
+                <NotificationDropdown />
+                <Link to="/calendar" style={{ marginLeft: 16 }}>
+                  <Tooltip title="Календарь">
+                    <Button
+                      type="text"
+                      icon={<CalendarOutlined style={{ fontSize: 24, color: '#1976d2', cursor: 'pointer' }} />}
+                      onClick={() => navigate('/calendar')}
                     />
-                  ) : (
-                    <MoonOutlined 
-                      className="theme-toggle"
-                      style={{ fontSize: '22px', cursor: 'pointer', transition: 'color 0.2s', color: 'var(--text-secondary)' }} 
-                      onClick={toggleTheme} 
-                    />
-                  )}
-                  <Popover
-                    content={profilePopoverContent}
-                    trigger="click"
-                    open={profilePopoverOpen}
-                    onOpenChange={setProfilePopoverOpen}
-                    placement="bottomRight"
-                  >
-                    <Avatar src={authContext?.user?.photo || authContext?.user?.avatar || undefined} icon={<UserOutlined />} style={{ cursor: 'pointer', width: 38, height: 38, boxShadow: '0 2px 8px var(--shadow-light)', transition: 'box-shadow 0.2s' }}>
-                      {(!authContext?.user?.photo && !authContext?.user?.avatar && authContext?.user?.firstName && authContext?.user?.lastName) ? `${authContext.user.firstName[0]}${authContext.user.lastName[0]}` : null}
-                    </Avatar>
-                  </Popover>
-                </Space>
-              </Col>
-            </Row>
-          </Header>
-          <div className="site-layout-background" style={{ padding: 24, minHeight: 360, background: 'var(--background-color)', marginLeft: 0 }}>
-            <Outlet />
-          </div>
-        </Layout>
-        
-        {/* Кнопка "Наверх" */}
-        {showScrollTop && (
-          <Button
-            type="primary"
-            shape="circle"
-            size="large"
-            icon={<UpOutlined />}
-            onClick={scrollToTop}
-            style={{
-              position: 'fixed',
-              bottom: '30px',
-              right: '30px',
-              zIndex: 1000,
-              width: '50px',
-              height: '50px',
-              background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%)',
-              border: 'none',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-              transition: 'all 0.3s ease',
-              animation: 'fadeInUp 0.3s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-3px)';
-              e.currentTarget.style.boxShadow = '0 6px 25px rgba(0, 0, 0, 0.2)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.15)';
-            }}
-          />
-        )}
+                  </Tooltip>
+                </Link>
+                <SettingOutlined style={{ fontSize: '22px', cursor: 'pointer', transition: 'color 0.2s', color: 'var(--text-secondary)' }} onClick={() => navigate('/settings')} />
+                {theme === 'light' ? (
+                  <SunOutlined 
+                    className="theme-toggle"
+                    style={{ fontSize: '22px', cursor: 'pointer', transition: 'color 0.2s', color: 'var(--text-secondary)' }} 
+                    onClick={toggleTheme} 
+                  />
+                ) : (
+                  <MoonOutlined 
+                    className="theme-toggle"
+                    style={{ fontSize: '22px', cursor: 'pointer', transition: 'color 0.2s', color: 'var(--text-secondary)' }} 
+                    onClick={toggleTheme} 
+                  />
+                )}
+                <Popover
+                  content={profilePopoverContent}
+                  trigger="click"
+                  open={profilePopoverOpen}
+                  onOpenChange={setProfilePopoverOpen}
+                  placement="bottomRight"
+                >
+                  <Avatar src={authContext?.user?.photo || authContext?.user?.avatar || undefined} icon={<UserOutlined />} style={{ cursor: 'pointer', width: 38, height: 38, boxShadow: '0 2px 8px var(--shadow-light)', transition: 'box-shadow 0.2s' }}>
+                    {(!authContext?.user?.photo && !authContext?.user?.avatar && authContext?.user?.firstName && authContext?.user?.lastName) ? `${authContext.user.firstName[0]}${authContext.user.lastName[0]}` : null}
+                  </Avatar>
+                </Popover>
+              </Space>
+            </Col>
+          </Row>
+        </Layout.Header>
+        <div
+          className="site-layout-background"
+          style={{
+            padding: 24,
+            minHeight: 360,
+            background: 'var(--background-color)',
+            marginLeft: 0,
+            paddingTop: isMobile ? 56 : 64,
+            marginRight: 0,
+          }}
+        >
+          <Outlet />
+        </div>
       </Layout>
       
-      {/* Интерактивное обучение */}
-      <TutorialOverlay />
-    </TutorialProvider>
+      {/* Кнопка "Наверх" */}
+      <Tooltip title="Наверх">
+        <Button
+          type="primary"
+          shape="circle"
+          icon={<UpOutlined />}
+          size="large"
+          onClick={scrollToTop}
+          style={{
+            position: 'fixed',
+            right: 24,
+            bottom: isMobile ? 80 : 40,
+            zIndex: 2000,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+            display: showScrollTop ? 'block' : 'none',
+            background: '#296fff',
+            color: '#fff',
+            border: 'none',
+            transition: 'bottom 0.3s',
+          }}
+        />
+      </Tooltip>
+    </Layout>
   );
 };
 

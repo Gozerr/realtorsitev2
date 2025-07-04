@@ -124,6 +124,16 @@ export default function NotificationsPage() {
           from { opacity: 0; transform: translate3d(0, 40px, 0); }
           to { opacity: 1; transform: none; }
         }
+        @media (max-width: 767px) {
+          .notification-list-col {
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+          }
+          .ant-btn, .ant-input {
+            font-size: 18px !important;
+            height: 48px !important;
+          }
+        }
       `}</style>
     </div>
   );

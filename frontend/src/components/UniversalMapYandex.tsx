@@ -73,8 +73,20 @@ const UniversalMapYandex: React.FC<UniversalMapYandexProps> = ({
     markersRef.current = [];
     // Создаём новые маркеры
     const geoObjects = properties.filter(p => !isNaN(Number(p.lat)) && !isNaN(Number(p.lng))).map(p => {
+      // Получаем фото объекта
+      let photo = Array.isArray(p.photos) && p.photos.length > 0 ? p.photos[0] : (typeof p.photos === 'string' && p.photos ? JSON.parse(p.photos)[0] : null);
+      if (!photo) photo = '/placeholder-property.jpg';
+      // Формируем balloonContent с фото
+      const balloonHtml = `
+        <div style='width:180px'>
+          <img src='${photo}' alt='Фото' style='width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:6px;' onerror="this.src='/placeholder-property.jpg'" />
+          <b>${p.title}</b><br/>
+          ${p.address}<br/>
+          <a href='/properties/${p.id}'>Подробнее</a>
+        </div>
+      `;
       const placemark = new window.ymaps.Placemark([Number(p.lat), Number(p.lng)], {
-        balloonContent: `<b>${p.title}</b><br/>${p.address}<br/><a href='/properties/${p.id}'>Подробнее</a>`
+        balloonContent: balloonHtml
       }, {
         preset: selectedId === p.id ? 'islands#redIcon' : 'islands#blueIcon',
         iconColor: selectedId === p.id ? '#ff3333' : '#3388ff',

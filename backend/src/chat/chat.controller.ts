@@ -1,40 +1,52 @@
 import {
   Controller,
   Get,
-  UseGuards,
-  Request,
-  Param,
-  Body,
   Post,
+  Body,
+  Param,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ChatService } from './chat.service';
-import { ChatGateway } from './chat.gateway';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
-@Controller('chat')
+@Controller('chats')
+@UseGuards(JwtAuthGuard)
 export class ChatController {
-  constructor(
-    private readonly chatService: ChatService,
-    private readonly chatGateway: ChatGateway,
-  ) {}
+  constructor(private readonly chatService: ChatService) {}
 
-  @UseGuards(JwtAuthGuard)
-  @Get('conversations')
-  async getConversations(@Request() req) {
-    return this.chatService.getConversationsForUser(req.user.id);
+  @Get()
+  async getUserChats(@Req() req: any) {
+    return this.chatService.getUserChats(req.user);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('messages/:conversationId')
-  async getMessages(@Request() req, @Param('conversationId') conversationId: string) {
-    return this.chatService.getMessages(conversationId, req.user.id);
+  @Get(':chatId/messages')
+  async getChatMessages(@Param('chatId') chatId: number) {
+    return this.chatService.getChatMessages({ id: chatId } as any);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Post('conversations')
-  async createConversation(@Request() req, @Body() body: { userId: number, propertyId: number }) {
-    const conversation = await this.chatService.createOrGetConversation(req.user.id, body.userId, body.propertyId);
-    this.chatGateway.emitNewConversation(conversation);
-    return conversation;
+  @Post('create')
+  async createChat(
+    @Body('propertyId') propertyId: number,
+    @Body('buyerId') buyerId: number,
+  ) {
+    // Здесь можно добавить проверки на существование property и users
+    return this.chatService.findOrCreateChat(
+      { id: propertyId } as any,
+      { id: buyerId } as any,
+    );
+  }
+
+  @Post(':chatId/send')
+  async sendMessage(
+    @Param('chatId') chatId: number,
+    @Body('authorId') authorId: number,
+    @Body('text') text: string,
+  ) {
+    return this.chatService.sendMessage(
+      { id: chatId } as any,
+      { id: authorId } as any,
+      text,
+    );
   }
 } 

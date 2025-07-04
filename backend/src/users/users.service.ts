@@ -10,7 +10,10 @@ import { AgenciesService } from '../agencies/agencies.service';
 import { Queue, Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 
-const redisConnection = { host: '127.0.0.1', port: 6379 };
+const redisConnection = {
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379', 10),
+};
 const importQueue = new Queue('user-import', { connection: redisConnection });
 const importStatus: Record<string, any> = {};
 

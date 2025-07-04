@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { CalendarEvent } from './calendar-event.entity';
 import { User } from '../users/user.entity';
-import { sendTelegramMessage } from '../telegram.service';
+import { TelegramService } from '../telegram.service';
 
 // Функция для экранирования спецсимволов в HTML для Telegram
 function escapeHtml(str: string): string {
@@ -31,6 +31,7 @@ export class CalendarService {
   constructor(
     @InjectRepository(CalendarEvent)
     private calendarRepository: Repository<CalendarEvent>,
+    private telegramService: TelegramService,
   ) {}
 
   // Получить все события для пользователя: личные + публичные
@@ -103,7 +104,7 @@ export class CalendarService {
       }
       msg = sanitizeTelegramHtml(msg);
       console.log('TELEGRAM MSG:', msg);
-      await sendTelegramMessage(user.telegramId, msg);
+      await this.telegramService.sendTelegramMessage(user.telegramId, msg);
     }
     return saved!;
   }
@@ -133,7 +134,7 @@ export class CalendarService {
       }
       msg = sanitizeTelegramHtml(msg);
       console.log('TELEGRAM MSG:', msg);
-      await sendTelegramMessage(user.telegramId, msg);
+      await this.telegramService.sendTelegramMessage(user.telegramId, msg);
     }
     return updated;
   }

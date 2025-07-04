@@ -1,30 +1,20 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
-import { UsersService } from '../users/users.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private usersService: UsersService) {
+  constructor(private configService: ConfigService) {
+    const secret = configService.get<string>('app.jwt.secret') || 'fallback-secret-change-in-production';
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: 'SECRET_KEY', // Тот же ключ, что и в auth.module.ts
+      secretOrKey: secret,
     });
   }
 
   async validate(payload: any) {
-    // Получаем пользователя из базы, чтобы добавить telegramId
-    const user = await this.usersService.findOneById(payload.sub);
-    if (!user) {
-      return { id: payload.sub, email: payload.email, role: payload.role };
-    }
-    // Возвращаем нужные поля, включая telegramId
-    return {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      telegramId: user.telegramId,
-    };
+    return { userId: payload.sub, email: payload.email, role: payload.role };
   }
 } 

@@ -16,6 +16,26 @@ L.Icon.Default.mergeOptions({
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
 
+// Кастомные иконки для обычного и выбранного маркера
+const defaultIcon = new L.Icon({
+  iconUrl: require('leaflet/dist/images/marker-icon.png'),
+  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+const selectedIcon = new L.Icon({
+  iconUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+  iconSize: [30, 48],
+  iconAnchor: [15, 48],
+  popupAnchor: [1, -38],
+  shadowSize: [48, 48],
+});
+
 interface UniversalMapProps {
   properties: Property[];
   selectedId?: number | null;
@@ -79,16 +99,30 @@ export const UniversalMap: React.FC<UniversalMapProps> = ({
     }
     markerLayerRef.current = new MarkerClusterGroup();
     properties.filter(p => typeof p.lat === 'number' && typeof p.lng === 'number').forEach(p => {
-      const marker = L.marker([p.lat as number, p.lng as number]);
+      // Получаем фото объекта
+      let photo = Array.isArray(p.photos) && p.photos.length > 0 ? p.photos[0] : (typeof p.photos === 'string' && p.photos ? JSON.parse(p.photos)[0] : null);
+      if (!photo) photo = '/placeholder-property.jpg';
+      // Формируем popup с фото
+      const popupHtml = `
+        <div style='width:180px'>
+          <img src='${photo}' alt='Фото' style='width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:6px;' onerror="this.src='/placeholder-property.jpg'" />
+          <b>${p.title}</b><br/>
+          ${p.address}<br/>
+          <a href='/properties/${p.id}'>Подробнее</a>
+        </div>
+      `;
+      // Выбираем иконку
+      const icon = selectedId === p.id ? selectedIcon : defaultIcon;
+      const marker = L.marker([p.lat as number, p.lng as number], { icon });
       marker.on('click', () => onSelect && onSelect(p.id));
-      marker.bindPopup(`<b>${p.title}</b><br/>${p.address}<br/><a href='/properties/${p.id}'>Подробнее</a>`);
+      marker.bindPopup(popupHtml);
       markerLayerRef.current!.addLayer(marker);
     });
     const newLayer = markerLayerRef.current;
     if (newLayer) {
       newLayer.addTo(mapRef.current);
     }
-  }, [properties, onSelect]);
+  }, [properties, onSelect, selectedId]);
 
   return (
     <MapContainer

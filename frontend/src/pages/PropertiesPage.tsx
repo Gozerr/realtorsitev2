@@ -1,6 +1,6 @@
 import React from 'react';
-import { Row, Col, Input, InputNumber, Select, Button, Typography, Spin, Alert, Tabs } from 'antd';
-import { SearchOutlined, HomeOutlined, NumberOutlined, ExpandOutlined, HighlightOutlined, CloseCircleOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import { Row, Col, Input, InputNumber, Select, Button, Typography, Spin, Alert, Tabs, Badge } from 'antd';
+import { SearchOutlined, HomeOutlined, NumberOutlined, ExpandOutlined, HighlightOutlined, CloseCircleOutlined, EnvironmentOutlined, MessageOutlined } from '@ant-design/icons';
 import PropertyCard from '../components/PropertyCard';
 import UniversalMapYandex from '../components/UniversalMapYandex';
 import { useNavigate } from 'react-router-dom';
@@ -41,7 +41,7 @@ export default function PropertiesPage() {
   } = usePropertiesContext();
   const [activeTab, setActiveTab] = React.useState<'active' | 'archive' | 'my'>('active');
 
-  // Фильтрация по табу (активные/архив/мои)
+  // Фильтрация по табу (активные/архив/мои) и по всем данным
   const filteredProperties = properties
     .filter(p => !!p.id && typeof p.id === 'number')
     .filter(p => {
@@ -57,6 +57,20 @@ export default function PropertiesPage() {
         }
       }
       return activeTab === 'active' ? status !== 'sold' : status === 'sold';
+    })
+    .filter(p => {
+      if (!filters.search) return true;
+      const search = filters.search.toLowerCase();
+      // Проверяем все основные поля
+      return (
+        (p.title && p.title.toLowerCase().includes(search)) ||
+        (p.address && p.address.toLowerCase().includes(search)) ||
+        (p.description && p.description.toLowerCase().includes(search)) ||
+        (p.agent && ((p.agent.firstName && p.agent.firstName.toLowerCase().includes(search)) || (p.agent.lastName && p.agent.lastName.toLowerCase().includes(search)) || (p.agent.email && p.agent.email.toLowerCase().includes(search)))) ||
+        (p.price && String(p.price).includes(search)) ||
+        (p.area && String(p.area).includes(search)) ||
+        (p.status && p.status.toLowerCase().includes(search))
+      );
     });
 
   // Открыть большую карту с текущими фильтрами
@@ -77,10 +91,16 @@ export default function PropertiesPage() {
   // Для карты: только объекты с координатами
   const propertiesWithCoords = filteredProperties.filter(p => p.lat && p.lng);
 
+  console.log('properties:', properties);
+
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(120deg, #f8fafc 0%, #e9f0fb 100%)', padding: '32px 0' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 1440, margin: '0 auto', padding: '0 24px' }}>
-        <Title level={2} style={{ marginBottom: 32, fontWeight: 800, letterSpacing: -1 }}>Объекты недвижимости</Title>
+      <div className="property-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 1440, margin: '0 auto', padding: '0 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <Title level={2} className="property-title-mobile" style={{ marginBottom: 32, fontWeight: 800, letterSpacing: -1 }}>
+            Объекты недвижимости
+          </Title>
+        </div>
         <Button
           type="primary"
           size="large"
@@ -122,10 +142,10 @@ export default function PropertiesPage() {
         }}>
           <Input
             prefix={<SearchOutlined style={{ color: '#b0b6c3' }} />}
-            placeholder="Поиск по адресу, названию или описанию"
+            placeholder="Поиск по всем данным (адрес, название, описание, агент, и др.)"
             value={filters.search || ''}
             onChange={e => updateFilters({ search: e.target.value })}
-            style={{ width: 240, borderRadius: 12, background: '#f7f9fc', border: '1px solid #e6eaf1' }}
+            style={{ width: 320, borderRadius: 12, background: '#f7f9fc', border: '1px solid #e6eaf1' }}
             allowClear
           />
           <InputNumber
@@ -207,23 +227,12 @@ export default function PropertiesPage() {
         </div>
         {/* Список объектов */}
         <Spin spinning={loading}>
-          <Row gutter={[24, 32]}>
-            {filteredProperties.length > 0 ? (
-              filteredProperties.map((property, idx) => (
-                <Col xs={24} sm={12} md={8} key={property.id}>
-                  <div style={{
-                    animation: 'fadeInUp 0.6s',
-                    animationDelay: `${idx * 0.07}s`,
-                    animationFillMode: 'both',
-                    borderRadius: 16,
-                  }}>
-                    <PropertyCard property={property} />
-                  </div>
-                </Col>
-              ))
-            ) : (
-              !loading && <Col span={24}><Alert message="Нет объектов" type="info" /></Col>
-            )}
+          <Row gutter={[24, 24]} style={{ margin: 0 }}>
+            {filteredProperties.map(property => (
+              <Col xs={24} sm={12} md={8} lg={8} key={property.id} style={{ display: 'flex' }}>
+                <PropertyCard property={property} />
+              </Col>
+            ))}
           </Row>
         </Spin>
       </div>
@@ -232,6 +241,41 @@ export default function PropertiesPage() {
         @keyframes fadeInUp {
           from { opacity: 0; transform: translate3d(0, 40px, 0); }
           to { opacity: 1; transform: none; }
+        }
+        @media (max-width: 767px) {
+          .property-title-mobile {
+            writing-mode: initial !important;
+            text-align: left !important;
+            font-size: 22px !important;
+            letter-spacing: 0 !important;
+            margin-bottom: 16px !important;
+            margin-top: 0 !important;
+            font-weight: 700 !important;
+            width: 100% !important;
+            white-space: normal !important;
+          }
+          .property-header-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 8px !important;
+            padding: 0 !important;
+          }
+          .property-filters {
+            flex-direction: column !important;
+            gap: 8px !important;
+            padding: 12px !important;
+            width: 100% !important;
+          }
+          .property-card-col {
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+          }
+        }
+        @media (max-width: 991px) and (min-width: 768px) {
+          .property-card-col {
+            flex: 0 0 50% !important;
+            max-width: 50% !important;
+          }
         }
       `}</style>
     </div>

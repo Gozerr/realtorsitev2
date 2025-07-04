@@ -3,16 +3,16 @@ import api from './api';
 import axios from 'axios';
 
 export async function updatePropertyCoords(id: string | number, lat: number, lng: number) {
-  return axios.patch(`/properties/${id}/coords`, { lat, lng });
+  return axios.patch(`/api/properties/${id}/coords`, { lat, lng });
 }
 
 export const getStatistics = async (): Promise<{ total: number; forSale: number; exclusives: number }> => {
-  const response = await api.get('/properties/statistics');
+  const response = await api.get('/api/properties/statistics');
   return response.data;
 };
 
 export const getMyProperties = async (token: string): Promise<Property[]> => {
-  const response = await api.get('/properties', {
+  const response = await api.get('/api/properties', {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -21,22 +21,22 @@ export const getMyProperties = async (token: string): Promise<Property[]> => {
 };
 
 export const getRecentProperties = async (): Promise<Property[]> => {
-  const response = await api.get('/properties/recent');
+  const response = await api.get('/api/properties/recent');
   return response.data;
 };
 
 export const getPropertyById = async (id: string, token?: string): Promise<Property> => {
   if (token) {
-    const response = await api.get(`/properties/${id}`,{ headers: { Authorization: `Bearer ${token}` } });
+    const response = await api.get(`/api/properties/${id}`,{ headers: { Authorization: `Bearer ${token}` } });
     return response.data;
   } else {
-    const response = await api.get(`/properties/${id}`);
+    const response = await api.get(`/api/properties/${id}`);
     return response.data;
   }
 };
 
 export const createProperty = async (data: CreatePropertyData, token: string): Promise<Property> => {
-  const response = await api.post('/properties', data, {
+  const response = await api.post('/api/properties', data, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -45,16 +45,21 @@ export const createProperty = async (data: CreatePropertyData, token: string): P
 };
 
 export const updatePropertyStatus = async (id: number, status: string) => {
-  const response = await api.patch(`/properties/${id}/status`, { status });
+  const response = await api.patch(`/api/properties/${id}/status`, { status });
   return response.data;
 };
 
 export const getPropertiesByAgent = async (agentId: number) => {
-  const res = await api.get(`/properties?agentId=${agentId}`);
+  const res = await api.get(`/api/properties?agentId=${agentId}`);
   return res.data;
 };
 
-export const getAllProperties = async (): Promise<Property[]> => {
-  const response = await api.get('/properties');
+export interface PropertiesResponse {
+  properties: Property[];
+  total: number;
+}
+
+export const getAllProperties = async (): Promise<PropertiesResponse> => {
+  const response = await api.get('/api/properties');
   return response.data;
 }; 

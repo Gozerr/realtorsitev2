@@ -4,7 +4,7 @@ const fs = require('fs');
 
 const BASE_URL = 'https://expomap.ru';
 const SEARCH_URL = BASE_URL + '/expo/search/?&q=недвижимости&sType=conf&fr=&to=&sort_by=date';
-const API_URL = 'http://localhost:3000/api/education'; // ваш backend
+const API_URL = 'http://localhost:3001/education'; // ваш backend
 const API_TOKEN = process.env.API_TOKEN || '';
 
 function sleep(ms) {

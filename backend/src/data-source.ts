@@ -4,35 +4,39 @@ import { User } from './users/user.entity';
 import { Property } from './properties/property.entity';
 import { Agency } from './agencies/agency.entity';
 import { Client } from './clients/client.entity';
-import { Conversation } from './chat/conversation.entity';
-import { Message } from './chat/message.entity';
 import { Notification } from './notifications/notification.entity';
 import { UserNotificationSettings } from './notifications/user-notification-settings.entity';
 import { EducationEvent } from './education/education-event.entity';
 import { Selection } from './selections/selection.entity';
 import { CalendarEvent } from './calendar/calendar-event.entity';
+import { RefreshToken } from './users/refresh-token.entity';
+import { Chat } from './chat/chat.entity';
+import { Message } from './chat/message.entity';
 
-// Определяем, запущен ли код в development режиме
-const isDevelopment = process.env.NODE_ENV !== 'production' || __dirname.includes('src');
+const entities = [
+  User,
+  Property,
+  Agency,
+  Client,
+  Notification,
+  UserNotificationSettings,
+  EducationEvent,
+  Selection,
+  CalendarEvent,
+  RefreshToken,
+  Chat,
+  Message,
+];
 
 export const AppDataSource = new DataSource({
-  type: 'sqlite',
-  database: 'db.sqlite',
-  entities: [
-    User,
-    Property,
-    Agency,
-    Client,
-    Conversation,
-    Message,
-    Notification,
-    UserNotificationSettings,
-    EducationEvent,
-    Selection,
-    CalendarEvent
-  ],
-  migrations: isDevelopment
-    ? ['src/migrations/*.ts']
-    : ['dist/migrations/*.js'],
-  synchronize: false,
+  type: 'postgres',
+  host: 'localhost',
+  port: 5432,
+  username: 'realtorsite_user',
+  password: 'realtorsite_password_2024',
+  database: 'realtorsite',
+  entities,
+  migrations: ['dist/src/migrations/*.js'],
+  synchronize: process.env.NODE_ENV === 'development',
+  logging: process.env.NODE_ENV === 'development',
 }); 

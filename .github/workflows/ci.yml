@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: realtorsite
+          POSTGRES_USER: realtorsite_user
+          POSTGRES_PASSWORD: realtorsite_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U realtorsite_user -d realtorsite" --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    env:
+      DATABASE_TYPE: postgres
+      DATABASE_HOST: localhost
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: realtorsite_user
+      DATABASE_PASSWORD: realtorsite_password
+      DATABASE_NAME: realtorsite
+      JWT_SECRET: test_jwt_secret_1234567890
+      JWT_EXPIRES_IN: 24h
+      CORS_ORIGIN: http://localhost:3000
+      PORT: 3001
+      NODE_ENV: test
+      TELEGRAM_BOT_TOKEN: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          npm ci
+
+      - name: Run backend lint
+        run: |
+          cd backend
+          npm run lint
+
+      - name: Run backend unit tests
+        run: |
+          cd backend
+          npm run test -- --passWithNoTests
+
+      - name: Run backend build
+        run: |
+          cd backend
+          npm run build
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run frontend lint
+        run: |
+          cd frontend
+          npx eslint src --ext .ts,.tsx
+
+      - name: Run frontend tests
+        run: |
+          cd frontend
+          npm run test -- --watchAll=false --passWithNoTests
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Docker Compose build (dev)
+        run: |
+          docker-compose -f docker-compose.yml build 

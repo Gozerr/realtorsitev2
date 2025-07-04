@@ -1,14 +1,16 @@
 import React from 'react';
-import { List, Card, Spin, Input, Button, InputNumber, Select, Carousel } from 'antd';
+import { List, Card, Spin, Input, Button, InputNumber, Select, Carousel, Modal, Avatar } from 'antd';
 import UniversalMapYandex from '../components/UniversalMapYandex';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { CloseOutlined, ArrowLeftOutlined, PlusOutlined } from '@ant-design/icons';
+import { CloseOutlined, ArrowLeftOutlined, PlusOutlined, PhoneOutlined, UserOutlined } from '@ant-design/icons';
 import { AuthContext } from '../context/AuthContext';
 import { usePropertiesContext } from '../context/PropertiesContext';
 import { FixedSizeList as VirtualList } from 'react-window';
 import { Skeleton } from 'antd';
 import { useState } from 'react';
 import AddToSelectionModal from '../components/AddToSelectionModal';
+import OptimizedImage from '../components/OptimizedImage';
+import PropertyCard from '../components/PropertyCard';
 
 const statusOptions = [
   { value: 'for_sale', label: 'В продаже' },
@@ -51,6 +53,8 @@ export default function MapSearchPage() {
   const minShowTimeout = React.useRef<any>(null);
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [addToSelectionId, setAddToSelectionId] = useState<number | null>(null);
+  const [agentModal, setAgentModal] = useState<{ open: boolean; agent: any } | null>(null);
+  const cardRefs = React.useRef<{ [id: number]: HTMLDivElement | null }>({});
 
   React.useEffect(() => {
     setTimeout(() => setShow(true), 10); // для плавной анимации
@@ -127,6 +131,22 @@ export default function MapSearchPage() {
   const listToShow = isFullCity ? filteredProperties : filteredProperties.slice(0, maxListCount);
   const tooMany = listToShow.length > maxListCount;
 
+  function getThumbnail(photo: string | undefined): string | undefined {
+    if (!photo) return undefined;
+    if (photo.startsWith('/uploads/objects/')) {
+      const parts = photo.split('/');
+      return ['/uploads', 'objects', 'thumbnails', ...parts.slice(3)].join('/');
+    }
+    return undefined;
+  }
+
+  // Скролл к выбранной карточке
+  React.useEffect(() => {
+    if (selectedId && cardRefs.current[selectedId]) {
+      cardRefs.current[selectedId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [selectedId]);
+
   return (
     <div className={`big-map-page${show ? ' big-map-page--show' : ''}`} style={{ display: 'flex', height: 'calc(100vh - 80px)', position: 'relative', transition: 'background 0.5s' }}>
       {/* Список объектов слева */}
@@ -181,66 +201,37 @@ export default function MapSearchPage() {
           )}
           {listToShow.map((item, index) => (
             <React.Fragment key={item.id}>
-              <div style={{ display: 'flex', alignItems: 'stretch', padding: '0 16px', boxSizing: 'border-box', width: '100%', maxWidth: '100%', marginBottom: 36 }}>
-                {/* Вертикальный акцент */}
-                <div style={{ width: 6, borderRadius: 8, background: 'linear-gradient(180deg, #6fa8ff 0%, #e6eaff 100%)', marginRight: 18, marginTop: 18, marginBottom: 18, minHeight: 180, alignSelf: 'stretch' }} />
-                <Card
-                  style={{
-                    width: '100%',
-                    maxWidth: '100%',
-                    background: '#fcfcff',
-                    border: '1.5px solid #f0f0f0',
-                    borderRadius: 18,
-                    boxShadow: selectedId === item.id ? '0 0 0 4px #e6f7ff, 0 4px 18px rgba(40,60,90,0.13)' : '0 2px 12px rgba(40,60,90,0.07)',
-                    transition: 'box-shadow 0.25s, border 0.25s',
-                    cursor: 'pointer',
-                    padding: 0,
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    minHeight: 240,
-                    justifyContent: 'space-between',
-                  }}
-                  onClick={() => setSelectedId(item.id)}
-                  bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column', flex: 1 }}
-                  hoverable
-                >
-                  <div style={{ width: '100%', height: 140, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: '18px 18px 0 0' }}>
-                    {item.photos && item.photos.length > 0 ? (
-                      <Carousel dots={item.photos.length > 1} style={{ width: '100%', height: 140 }}>
-                        {item.photos.map((photo: string, idx: number) => (
-                          <img
-                            key={idx}
-                            src={photo}
-                            alt={item.title}
-                            style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: '18px 18px 0 0' }}
-                            onError={e => (e.currentTarget.style.display = 'none')}
-                          />
-                        ))}
-                      </Carousel>
-                    ) : (
-                      <div style={{ width: '100%', height: 140, background: '#eee', borderRadius: '18px 18px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb' }}>Нет фото</div>
-                    )}
-                  </div>
-                  <div style={{ padding: '18px 22px 10px 22px', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 80 }}>
-                    <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</div>
-                    <div style={{ color: '#888', fontSize: 15, marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.address}</div>
-                    <div style={{ color: '#1890ff', fontWeight: 600, fontSize: 19, marginBottom: 10 }}>{item.price?.toLocaleString()} ₽</div>
-                    <div style={{ color: '#666', fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.description || ''}</div>
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      style={{ borderRadius: 8, marginTop: 12, alignSelf: 'flex-start', fontWeight: 500 }}
-                      onClick={e => { e.stopPropagation(); setAddToSelectionId(item.id); }}
-                    >
-                      Добавить в подбор
-                    </Button>
-                  </div>
-                </Card>
+              <div
+                ref={el => { cardRefs.current[item.id] = el; }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'stretch',
+                  padding: '0 8px',
+                  width: '100%',
+                  maxWidth: '100%',
+                  marginBottom: 18,
+                  background: item.id === selectedId ? '#e6f0ff' : 'transparent',
+                  borderRadius: 14,
+                  boxShadow: item.id === selectedId ? '0 0 0 2px #1976d2' : 'none',
+                  transition: 'background 0.2s, box-shadow 0.2s',
+                  position: 'relative',
+                  cursor: 'pointer',
+                }}
+                onClick={() => setSelectedId(item.id)}
+              >
+                <PropertyCard
+                  property={item}
+                  mode="avito"
+                  showActions={false}
+                />
+                {/* Кнопка телефон */}
+                <Button
+                  type="default"
+                  icon={<PhoneOutlined />}
+                  style={{ position: 'absolute', bottom: 18, right: 18, zIndex: 2, borderRadius: 8, fontWeight: 600 }}
+                  onClick={e => { e.stopPropagation(); setAgentModal({ open: true, agent: item.agent }); }}
+                />
               </div>
-              {index < listToShow.length - 1 && (
-                <div style={{ width: '100%', height: 1, background: '#e6e6e6', margin: '0 0 36px 0', borderRadius: 1 }} />
-              )}
             </React.Fragment>
           ))}
         </div>
@@ -272,12 +263,43 @@ export default function MapSearchPage() {
         />
       </div>
       <AddToSelectionModal open={!!addToSelectionId} propertyId={addToSelectionId || undefined} onClose={() => setAddToSelectionId(null)} />
+      {/* Модальное окно агента */}
+      <Modal
+        open={!!agentModal?.open}
+        onCancel={() => setAgentModal(null)}
+        footer={null}
+        title="Информация об агенте"
+      >
+        {agentModal?.agent ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+            <Avatar size={64} src={agentModal.agent.photo} icon={<UserOutlined />} />
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 18 }}>{agentModal.agent.firstName} {agentModal.agent.lastName}</div>
+              <div style={{ color: '#1976d2', fontSize: 17, margin: '4px 0', fontWeight: 500 }}><PhoneOutlined /> {agentModal.agent.phone}</div>
+              <div style={{ color: '#888', fontSize: 15 }}>{agentModal.agent.email || '—'}</div>
+            </div>
+          </div>
+        ) : (
+          <div>Нет информации об агенте</div>
+        )}
+      </Modal>
       <style>{`
         .big-map-page {
           background: #f8fafc;
         }
         .big-map-page--show {
           background: #e9f0fb;
+        }
+        @media (max-width: 767px) {
+          .map-filters {
+            flex-direction: column !important;
+            gap: 8px !important;
+            padding: 12px !important;
+          }
+          .ant-btn, .ant-input, .ant-select {
+            font-size: 18px !important;
+            height: 48px !important;
+          }
         }
       `}</style>
     </div>

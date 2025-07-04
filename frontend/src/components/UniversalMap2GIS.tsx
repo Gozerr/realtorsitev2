@@ -53,14 +53,28 @@ const UniversalMap2GIS: React.FC<UniversalMap2GISProps> = ({
     markersRef.current = [];
     // Добавляем новые маркеры (без кластеризации)
     properties.filter(p => !isNaN(Number(p.lat)) && !isNaN(Number(p.lng))).forEach(p => {
+      // Получаем фото объекта
+      let photo = Array.isArray(p.photos) && p.photos.length > 0 ? p.photos[0] : (typeof p.photos === 'string' && p.photos ? JSON.parse(p.photos)[0] : null);
+      if (!photo) photo = '/placeholder-property.jpg';
+      // Формируем label с фото и выделением
+      const isSelected = selectedId === p.id;
+      const labelHtml = `
+        <div style='width:160px;text-align:left;'>
+          <img src='${photo}' alt='Фото' style='width:100%;height:70px;object-fit:cover;border-radius:7px;margin-bottom:4px;${isSelected ? 'border:2px solid #ff3333;' : ''}' onerror="this.src='/placeholder-property.jpg'" />
+          <b>${p.title}</b><br/>
+          ${p.address}<br/>
+          <a href='/properties/${p.id}'>Подробнее</a>
+        </div>
+      `;
       const marker = new window.mapgl.Marker(mapRef.current, {
         coordinates: [Number(p.lng), Number(p.lat)],
         onClick: () => onSelect && onSelect(p.id),
-        label: { text: p.title },
+        label: { html: labelHtml },
+        icon: isSelected ? '/assets/marker-icon-selected.png' : undefined, // если поддерживается кастомная иконка
       });
       markersRef.current.push(marker);
     });
-  }, [properties, onSelect]);
+  }, [properties, onSelect, selectedId]);
 
   // Центрирование на выбранном объекте
   useEffect(() => {

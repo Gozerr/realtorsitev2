@@ -1,7 +1,8 @@
 import React, { useState, useContext } from 'react';
-import { Form, Input, Button, Typography, Row, Col, Card } from 'antd';
+import { Form, Input, Button, Typography, Row, Col, Card, Alert } from 'antd';
 import { AuthContext } from '../context/AuthContext';
 import { login, getProfile } from '../services/auth.service';
+import { setupAuthAutoRefresh } from '../services/api';
 
 const { Title } = Typography;
 
@@ -14,11 +15,16 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
     try {
-      const data = await login({ email: values.email, password: values.password });
+      const data = await login({ email: values.email, password: values.password }, { withCredentials: true });
       const profile = await getProfile(data.access_token);
       authContext?.setAuthData(data.access_token, profile);
-    } catch (err) {
-      setError('Failed to login. Please check your credentials.');
+      setupAuthAutoRefresh();
+    } catch (err: any) {
+      let msg = 'Failed to login. Please check your credentials.';
+      if (err?.response?.data?.message) {
+        msg = err.response.data.message;
+      }
+      setError(msg);
       console.error(err);
     } finally {
       setLoading(false);
@@ -41,7 +47,7 @@ const LoginPage = () => {
               name="email"
               rules={[{ required: true, type: 'email', message: 'Please input a valid email!' }]}
             >
-              <Input />
+              <Input autoFocus />
             </Form.Item>
 
             <Form.Item
@@ -52,7 +58,7 @@ const LoginPage = () => {
               <Input.Password />
             </Form.Item>
 
-            {error && <Typography.Text type="danger">{error}</Typography.Text>}
+            {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 16 }} />}
 
             <Form.Item>
               <Button type="primary" htmlType="submit" loading={loading} style={{ width: '100%' }}>
