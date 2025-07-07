@@ -17,7 +17,7 @@ import { NotificationProvider } from './context/NotificationContext';
 import MapSearchPage from './pages/MapSearchPage';
 import { PropertiesProvider } from './context/PropertiesContext';
 import CalendarPage from './pages/CalendarPage';
-import PropertyDetailsPage from './pages/PropertyDetailsPage';
+import PropertyDetailsPageClean from './pages/PropertyDetailsPageClean';
 import ClientSelectionPage from './pages/ClientSelectionPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import './animations.css';
@@ -79,7 +79,7 @@ function App() {
                 }>
                   <Route index element={<DashboardPage />} />
                   <Route path="properties" element={<PropertiesPage />} />
-                  <Route path="properties/:id" element={<PropertyDetailsPage />} />
+                  <Route path="properties/:id" element={<PropertyDetailsPageClean />} />
                   <Route path="clients" element={<ClientsPage />} />
                   <Route path="selection" element={<SelectionPage />} />
                   <Route path="notifications" element={<NotificationsPage />} />

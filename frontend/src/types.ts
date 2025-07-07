@@ -12,6 +12,12 @@ export interface User {
   avatar?: string;
   city?: string;
   region?: string;
+  telegramUsername?: string;
+  whatsappNumber?: string;
+  agency?: {
+    id: number;
+    name: string;
+  };
 }
 
 export interface LoginCredentials {
@@ -50,6 +56,8 @@ export interface Property {
     email: string;
     phone?: string;
     photo?: string;
+    telegramUsername?: string;
+    whatsappNumber?: string;
     agency?: {
       id: number;
       name: string;
@@ -110,6 +118,8 @@ export interface Client {
   status: ClientStatus;
   createdAt: string;
   updatedAt: string;
+  telegramUsername?: string;
+  whatsappNumber?: string;
 }
 
 export interface CreateClientData {

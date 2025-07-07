@@ -28,6 +28,25 @@ const ClientCard: React.FC<ClientCardProps> = ({ client }) => {
   
   const clientStatus = statusMap[client.status];
 
+  // --- Кнопки для связи через мессенджеры ---
+  const renderMessengers = () => {
+    const { telegramUsername, whatsappNumber } = client;
+    return (
+      <>
+        {telegramUsername && (
+          <a href={`https://t.me/${telegramUsername.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer">
+            <img src="/telegram-icon.svg" alt="Telegram" style={{ width: 22, height: 22, marginLeft: 6 }} />
+          </a>
+        )}
+        {whatsappNumber && (
+          <a href={`https://wa.me/${whatsappNumber.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
+            <img src="/whatsapp-icon.svg" alt="WhatsApp" style={{ width: 22, height: 22, marginLeft: 6 }} />
+          </a>
+        )}
+      </>
+    );
+  };
+
   return (
     <Card
       hoverable
@@ -53,6 +72,7 @@ const ClientCard: React.FC<ClientCardProps> = ({ client }) => {
           <Space>
             <PhoneOutlined />
             <Text>{client.phone}</Text>
+            {renderMessengers()}
           </Space>
           <Space>
             <MailOutlined />

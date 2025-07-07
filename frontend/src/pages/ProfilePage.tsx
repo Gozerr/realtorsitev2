@@ -34,10 +34,10 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('profile');
   const [uploading, setUploading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editValues, setEditValues] = useState({ firstName: '', lastName: '', email: '', phone: '', role: '' });
+  const [editValues, setEditValues] = useState({ firstName: '', lastName: '', email: '', phone: '', role: '', telegramUsername: '' });
   const authContext = useContext(AuthContext);
   const user = authContext?.user;
-  const [agency, setAgency] = useState<{ id: number; name: string } | null>(null);
+  const agency = user?.agency || null;
   const [avatarHover, setAvatarHover] = useState(false);
 
   useEffect(() => {
@@ -48,22 +48,10 @@ export default function ProfilePage() {
         email: user.email || '',
         phone: user.phone || '',
         role: user.role || '',
+        telegramUsername: user.telegramUsername || '',
       });
     }
   }, [user]);
-
-  useEffect(() => {
-    if (user?.agencyId && authContext?.token) {
-      fetch(`/agencies/${user.agencyId}`, {
-        headers: { Authorization: `Bearer ${authContext.token}` },
-      })
-        .then(res => res.ok ? res.json() : null)
-        .then(data => setAgency(data))
-        .catch(() => setAgency(null));
-    } else {
-      setAgency(null);
-    }
-  }, [user?.agencyId, authContext?.token]);
 
   if (authContext && authContext.user === undefined) {
     return <div style={{ padding: 32 }}>Загрузка...</div>;
@@ -92,6 +80,7 @@ export default function ProfilePage() {
         lastName: user.lastName,
         email: user.email,
         phone: user.phone,
+        telegramUsername: user.telegramUsername,
         photo: photoUrl,
       });
       const freshProfile = await getProfile(authContext.token);
@@ -124,6 +113,7 @@ export default function ProfilePage() {
         email: user.email || '',
         phone: user.phone || '',
         role: user.role || '',
+        telegramUsername: user.telegramUsername || '',
       });
     }
     setIsEditing(false);
@@ -144,6 +134,7 @@ export default function ProfilePage() {
         lastName: editValues.lastName,
         email: editValues.email,
         phone: editValues.phone,
+        telegramUsername: editValues.telegramUsername,
         photo: user?.photo,
       });
       if (authContext?.token) {
@@ -294,6 +285,13 @@ export default function ProfilePage() {
                       )}
                     </InputMask>
                     <Input
+                      value={editValues.telegramUsername}
+                      onChange={e => handleChange('telegramUsername', e.target.value)}
+                      placeholder="Telegram username (без @)"
+                      style={{ marginTop: 12, fontSize: 18, borderRadius: 10 }}
+                      size="large"
+                    />
+                    <Input
                       value={editValues.email}
                       onChange={e => handleChange('email', e.target.value)}
                       placeholder="Email"
@@ -313,6 +311,18 @@ export default function ProfilePage() {
                     <Text type="secondary" style={{ fontSize: 20, fontWeight: 500, marginBottom: 24, textAlign: 'center', display: 'block' }}>
                       {user?.role === 'director' ? 'Директор' : 'Агент'}
                     </Text>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: 12, margin: '8px 0 8px 0' }}>
+                      {user?.telegramUsername && (
+                        <a href={`https://t.me/${user.telegramUsername.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer">
+                          <img src="/telegram-icon.svg" alt="Telegram" style={{ width: 28, height: 28 }} />
+                        </a>
+                      )}
+                      {user?.whatsappNumber && (
+                        <a href={`https://wa.me/${user.whatsappNumber.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
+                          <img src="/whatsapp-icon.svg" alt="WhatsApp" style={{ width: 28, height: 28 }} />
+                        </a>
+                      )}
+                    </div>
                     <div style={{ width: '100%', margin: '24px 0 0 0', textAlign: 'center' }}>
                       <div style={{ fontSize: 20, fontWeight: 500, marginBottom: 8, color: '#222' }}>{user?.phone || <span style={{ color: '#bbb' }}>Телефон не указан</span>}</div>
                       <div style={{ fontSize: 20, fontWeight: 500, marginBottom: 8, color: '#222' }}>{user?.email}</div>
@@ -352,7 +362,7 @@ export default function ProfilePage() {
                     <div style={{ color: '#888', fontSize: 16 }}>ID: {agency.id}</div>
                   </>
                 ) : (
-                  <div style={{ color: '#888', fontSize: 16 }}>Нет данных об агентстве</div>
+                  <div style={{ color: '#888', fontSize: 16 }}>Частный агент</div>
                 )}
               </div>
             </div>

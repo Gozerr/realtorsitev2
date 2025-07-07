@@ -25,7 +25,7 @@ interface PropertiesContextType {
   bbox: [number, number, number, number] | null;
   setBbox: (b: [number, number, number, number] | null) => void;
   properties: Property[];
-  setProperties: (p: Property[]) => void;
+  setProperties: React.Dispatch<React.SetStateAction<Property[]>>;
   loading: boolean;
   setLoading: (l: boolean) => void;
   selectedId: number | null;

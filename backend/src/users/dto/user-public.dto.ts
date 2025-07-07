@@ -1,4 +1,9 @@
-import { Exclude, Expose } from 'class-transformer';
+import { Exclude, Expose, Type } from 'class-transformer';
+
+export class AgencyPublicDto {
+  @Expose() id: number;
+  @Expose() name: string;
+}
 
 @Exclude()
 export class UserPublicDto {
@@ -12,4 +17,9 @@ export class UserPublicDto {
   @Expose() region?: string;
   @Expose() role: string;
   @Expose() telegramId?: string;
+  @Expose() telegramUsername?: string;
+  @Expose() whatsappNumber?: string;
+  @Expose()
+  @Type(() => AgencyPublicDto)
+  agency?: AgencyPublicDto;
 } 

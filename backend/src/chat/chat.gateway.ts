@@ -28,7 +28,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log('[ChatGateway] handleConnection token:', token, 'query:', client.handshake.query, 'auth:', client.handshake.auth, 'headers:', client.handshake.headers);
     if (!token) {
       console.log('[ChatGateway] No token provided');
-      return client.disconnect();
+      return;
     }
     try {
       const payload = this.jwtService.verify(token);

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Typography, Tag, Button, Avatar, Spin, Alert, Row, Col, Input, Carousel, Divider, Space } from 'antd';
 import { getPropertyById } from '../services/property.service';
-import { UserOutlined, PhoneOutlined, MessageOutlined, HomeOutlined } from '@ant-design/icons';
+import { UserOutlined, PhoneOutlined, MessageOutlined, HomeOutlined, PropertySafetyOutlined, WarningOutlined, SyncOutlined } from '@ant-design/icons';
 import { Property } from '../types';
 import { AuthContext } from '../context/AuthContext';
 import OptimizedImage from '../components/OptimizedImage';
@@ -211,6 +211,57 @@ const PropertyDetailsPage: React.FC = () => {
   // Логирование в рендере для диагностики
   console.log('[RENDER] property:', property);
 
+  // После получения property:
+  console.log(property, 'LEGAL_BLOCK');
+  const legalStatus = property?.legalCheck?.status || 'Нет проверки';
+  let legalIcon = <WarningOutlined style={{ fontSize: 38, color: '#faad14' }} />;
+  let legalColor = '#faad14';
+  let legalText = 'Нет проверки';
+  if (legalStatus === 'Проверено') {
+    legalIcon = <PropertySafetyOutlined style={{ fontSize: 44, color: '#22c55e' }} />;
+    legalColor = '#22c55e';
+    legalText = 'Проверено';
+  } else if (legalStatus === 'На проверке') {
+    legalIcon = <SyncOutlined spin style={{ fontSize: 40, color: '#2563eb' }} />;
+    legalColor = '#2563eb';
+    legalText = 'На проверке';
+  }
+  const legalBlock = (
+    <div style={{
+      margin: '32px auto 32px auto',
+      padding: '28px 36px',
+      background: '#fff',
+      border: `2px solid ${legalColor}`,
+      borderRadius: 20,
+      boxShadow: '0 4px 24px #e6eaf1',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 28,
+      maxWidth: 700,
+      minHeight: 90,
+    }}>
+      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 60, height: 60, background: '#f6fefb', borderRadius: '50%', border: `2px solid ${legalColor}` }}>
+        {legalIcon}
+      </div>
+      <div>
+        <div style={{ fontWeight: 800, fontSize: 24, color: legalColor, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <PropertySafetyOutlined style={{ fontSize: 28, color: legalColor, marginRight: 6 }} />
+          {legalText === 'Проверено'
+            ? 'Юридическая чистота подтверждена'
+            : legalText === 'На проверке'
+            ? 'Юридическая чистота на проверке'
+            : 'Юридическая чистота не проверена'}
+        </div>
+        {property?.legalCheck?.details && (
+          <div style={{ color: '#555', fontSize: 17, marginBottom: 2 }}>{property.legalCheck.details}</div>
+        )}
+        {property?.legalCheck?.date && (
+          <div style={{ color: '#888', fontSize: 15, marginTop: 4 }}>Проверено: {property.legalCheck.date}</div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 0' }}>
       <Row gutter={[40, 32]}>
@@ -295,26 +346,8 @@ const PropertyDetailsPage: React.FC = () => {
               </div>
               <div style={{ fontSize: 19, color: '#444', marginBottom: 10, fontWeight: 700 }}>Описание</div>
               <div style={{ fontSize: 17, color: '#555', marginBottom: 0 }}>{property.description || 'Описание отсутствует'}</div>
+              {legalBlock}
             </div>
-            {/* Юридическая чистота объекта */}
-            {property.legalCheck && (
-              <div style={{ margin: '28px 0', padding: 18, background: '#f4f6fa', borderRadius: 14, display: 'flex', alignItems: 'flex-start', gap: 18 }}>
-                <span style={{ fontSize: 32, color: property.legalCheck.status === 'clean' ? '#22c55e' : property.legalCheck.status === 'encumbered' ? '#f59e42' : '#888' }}>🛡️</span>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 4 }}>
-                    {property.legalCheck.status === 'clean' && 'Юридическая чистота подтверждена'}
-                    {property.legalCheck.status === 'encumbered' && 'Есть юридические ограничения'}
-                    {property.legalCheck.status === 'unknown' && 'Нет данных о юридической чистоте'}
-                  </div>
-                  {property.legalCheck.details && (
-                    <div style={{ color: '#555', fontSize: 16 }}>{property.legalCheck.details}</div>
-                  )}
-                  {property.legalCheck.lastCheckedAt && (
-                    <div style={{ color: '#888', fontSize: 14, marginTop: 4 }}>Проверено: {property.legalCheck.lastCheckedAt}</div>
-                  )}
-                </div>
-              </div>
-            )}
           </section>
           {/* Блок расположения объекта */}
           <Divider style={{ margin: '0 0 18px 0' }} />
@@ -379,8 +412,20 @@ const PropertyDetailsPage: React.FC = () => {
                 <div style={{ color: '#888', fontSize: 15, margin: '2px 0 4px 0' }}>
                   {property.agent.agency?.name || 'Частный агент'}
                 </div>
-                <div style={{ color: '#2563eb', fontSize: 16, fontWeight: 600 }}>
-                  {property.agent.phone || 'Телефон не указан'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ color: '#2563eb', fontSize: 16, fontWeight: 600 }}>
+                    {property.agent.phone || 'Телефон не указан'}
+                  </span>
+                  {property.agent.telegramUsername && (
+                    <a href={`https://t.me/${property.agent.telegramUsername.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer">
+                      <img src="/telegram-icon.svg" alt="Telegram" style={{ width: 22, height: 22 }} />
+                    </a>
+                  )}
+                  {property.agent.whatsappNumber && (
+                    <a href={`https://wa.me/${property.agent.whatsappNumber.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
+                      <img src="/whatsapp-icon.svg" alt="WhatsApp" style={{ width: 22, height: 22 }} />
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
@@ -533,4 +578,4 @@ const PropertyDetailsPage: React.FC = () => {
   );
 };
 
-export default PropertyDetailsPageClean;
+export default PropertyDetailsPage;

@@ -61,4 +61,10 @@ export class User {
 
   @Column({ nullable: true })
   telegramId: string;
+
+  @Column({ nullable: true })
+  telegramUsername: string;
+
+  @Column({ nullable: true })
+  whatsappNumber: string;
 } 

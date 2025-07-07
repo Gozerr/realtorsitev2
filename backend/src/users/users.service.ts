@@ -7,7 +7,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { AgenciesService } from '../agencies/agencies.service';
-import { Queue, Worker, Job } from 'bullmq';
+import { Queue, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 
 const redisConnection = {
@@ -164,6 +164,8 @@ export class UsersService {
               phone: userData.phone,
               photo: userData.photo,
               agency: agencyId ? { id: agencyId } : undefined,
+              telegramUsername: userData.telegramUsername,
+              whatsappNumber: userData.whatsappNumber,
             });
             user = await this.findOneById(user.id);
             userResult = user;
@@ -182,6 +184,8 @@ export class UsersService {
               photo: userData.photo,
               role: userData.role || 'agent',
               agency: agencyId ? { id: agencyId } : undefined,
+              telegramUsername: userData.telegramUsername,
+              whatsappNumber: userData.whatsappNumber,
             });
             const savedUser = await this.usersRepository.save(newUser);
             const { password, ...result } = savedUser;

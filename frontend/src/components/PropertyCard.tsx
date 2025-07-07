@@ -2,12 +2,13 @@ import React, { useState, useContext, useRef, useCallback } from 'react';
 import { Card, Carousel, Tag, Button, Tooltip, Modal, Form, Select, Space, Typography, Skeleton, Badge } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { Property } from '../types';
-import { MessageOutlined, PlusOutlined, HeartOutlined, HeartFilled, EyeOutlined, EditOutlined, DeleteOutlined, UserOutlined, PropertySafetyOutlined } from '@ant-design/icons';
+import { MessageOutlined, PlusOutlined, HeartOutlined, HeartFilled, EyeOutlined, EditOutlined, DeleteOutlined, UserOutlined, PropertySafetyOutlined, WarningOutlined, SyncOutlined } from '@ant-design/icons';
 import AddToSelectionModal from './AddToSelectionModal';
 import { updatePropertyStatus } from '../services/property.service';
 import { AuthContext } from '../context/AuthContext';
 import OptimizedImage from './OptimizedImage';
 import styles from './GlassCard.module.css';
+import { message } from 'antd';
 
 const { Text, Title } = Typography;
 
@@ -20,7 +21,7 @@ const statusOptions = [
 
 type PropertyCardProps = {
   property: Property;
-  onStatusChange?: (id: number, status: string) => void;
+  onStatusChange?: (id: number, status: string, property: Property) => void;
   mode?: 'default' | 'compact' | 'avito';
   onFavorite?: (propertyId: number) => void;
   onEdit?: (propertyId: number) => void;
@@ -28,6 +29,7 @@ type PropertyCardProps = {
   isFavorite?: boolean;
   loading?: boolean;
   showActions?: boolean;
+  allowStatusEdit?: boolean;
 };
 
 function normalizePhotos(photos: any): string[] {
@@ -63,6 +65,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   isFavorite = false,
   loading = false,
   showActions = true,
+  allowStatusEdit = true,
 }) => {
   const images: string[] = normalizePhotos(property.photos) || property.images || [];
   const navigate = useNavigate();
@@ -90,6 +93,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
 
   // Агент может менять статус только если он привязан к объекту
   const canEditStatus =
+    allowStatusEdit &&
     currentUser &&
     currentUser.role === 'agent' &&
     property.agent &&
@@ -106,11 +110,20 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
     setStatusModalOpen(true);
   };
 
-  const handleSaveStatus = async () => {
+  const handleSaveStatus = async (newStatus?: string) => {
     setStatusModalOpen(false);
-    if (selectedStatus !== property.status) {
-      await updatePropertyStatus(property.id, selectedStatus);
-      onStatusChange && onStatusChange(property.id, selectedStatus);
+    const statusToSet = newStatus || selectedStatus;
+    if (statusToSet !== property.status) {
+      try {
+        console.log('Отправка запроса на смену статуса:', statusToSet);
+        const updated = await updatePropertyStatus(property.id, statusToSet, auth?.token || undefined);
+        onStatusChange && onStatusChange(property.id, updated.status, updated);
+        message.success('Статус успешно обновлён!');
+      } catch (error: any) {
+        console.error('Ошибка смены статуса:', error);
+        const errorMsg = error?.response?.data?.message || error.message || 'Не удалось обновить статус';
+        message.error(errorMsg);
+      }
     }
   };
 
@@ -176,9 +189,6 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
     || (typeof property.photos === 'string' && (() => { try { const arr = JSON.parse(property.photos); return Array.isArray(arr) && arr[0] ? arr[0] : null; } catch { return null; } })())
     || '/placeholder-property.jpg';
 
-  console.log('PropertyCard property.photos:', property.photos);
-  console.log('PropertyCard mainImage:', mainImage);
-
   // Форматирование цены с пробелами
   const formatPrice = (price?: number | string) => {
     const num = Number(price);
@@ -188,6 +198,44 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
 
   // Новый единый стиль карточки:
   const isModalActive = modalOpen || phoneModalOpen;
+
+  // --- Кнопки для связи через мессенджеры ---
+  const renderAgentMessengers = () => {
+    if (!property.agent) return null;
+    let { telegramUsername, whatsappNumber } = property.agent;
+    // Удаляем символ @ в начале username, если он есть
+    if (telegramUsername) {
+      telegramUsername = telegramUsername.replace(/^@/, '');
+    }
+    return (
+      <Space style={{ marginTop: 8 }}>
+        {telegramUsername && (
+          <a href={`https://t.me/${telegramUsername}`} target="_blank" rel="noopener noreferrer">
+            <img src="/telegram-icon.svg" alt="Telegram" style={{ width: 24, height: 24 }} />
+          </a>
+        )}
+        {whatsappNumber && (
+          <a href={`https://wa.me/${whatsappNumber.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
+            <img src="/whatsapp-icon.svg" alt="WhatsApp" style={{ width: 24, height: 24 }} />
+          </a>
+        )}
+      </Space>
+    );
+  };
+
+  const legalStatus = property.legalCheck?.status || 'Не проверен';
+  let legalIcon = <PropertySafetyOutlined style={{ fontSize: 20, color: '#faad14' }} />;
+  let legalColor = '#faad14';
+  let legalText = 'Не проверен';
+  if (legalStatus === 'Проверен') {
+    legalIcon = <PropertySafetyOutlined style={{ fontSize: 20, color: '#52c41a' }} />;
+    legalColor = '#52c41a';
+    legalText = 'Проверен';
+  } else if (legalStatus === 'На проверке') {
+    legalIcon = <SyncOutlined spin style={{ fontSize: 20, color: '#1890ff' }} />;
+    legalColor = '#1890ff';
+    legalText = 'На проверке';
+  }
 
   if (mode === 'avito') {
     return (
@@ -221,15 +269,30 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
             )}
             {property.type && <span>{property.type}</span>}
           </div>
-          {/* Блок юридической чистоты */}
-          {property.legalCheck && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0' }}>
-              <PropertySafetyOutlined style={{ fontSize: 18, color: property.legalCheck.status === 'Проверено' ? '#52c41a' : '#faad14' }} />
-              <span style={{ fontWeight: 600, color: property.legalCheck.status === 'Проверено' ? '#52c41a' : '#faad14' }}>{property.legalCheck.status}</span>
-              <span style={{ color: '#888', fontSize: 13 }}>{property.legalCheck.details}</span>
-              {property.legalCheck.date && <span style={{ color: '#b0b6c3', fontSize: 12, marginLeft: 8 }}>{property.legalCheck.date}</span>}
+          {/* Блок юридической чистоты — современный стиль */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            margin: '14px 0 10px 0',
+            padding: '14px 18px',
+            background: '#fff',
+            borderRadius: 14,
+            boxShadow: '0 2px 12px #e6eaf133',
+            maxWidth: 420,
+            minHeight: 56,
+          }}>
+            <div style={{ fontSize: 28, flexShrink: 0 }}>
+              {legalIcon}
             </div>
-          )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontWeight: 700, fontSize: 15, color: legalColor, marginBottom: 2 }}>
+                Юридическая чистота: {legalText}
+              </span>
+              {property.legalCheck?.details && <span style={{ color: '#888', fontSize: 12 }}>{property.legalCheck.details}</span>}
+              {property.legalCheck?.date && <span style={{ color: '#b0b6c3', fontSize: 11 }}>{property.legalCheck?.date}</span>}
+            </div>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
             {property.agent?.photo ? (
               <img src={property.agent.photo} alt="Агент" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', boxShadow: '0 1px 4px #e6eaf1' }} />
@@ -241,6 +304,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
               <span style={{ fontSize: 14, color: '#1976d2', marginLeft: 8 }}>{property.agent.phone}</span>
             )}
           </div>
+          {renderAgentMessengers()}
         </div>
         <AddToSelectionModal open={modalOpen} propertyId={property.id} onClose={() => setModalOpen(false)} />
       </div>
@@ -299,7 +363,10 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
               size="small"
               value={property.status}
               style={{ minWidth: 110 }}
-              onChange={val => onStatusChange && onStatusChange(property.id, val)}
+              onChange={async val => {
+                setSelectedStatus(val);
+                await handleSaveStatus(val);
+              }}
               options={statusOptions}
               onClick={e => e.stopPropagation()}
             />
@@ -310,52 +377,86 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
           <Tag color="purple" style={{ fontWeight: 600, fontSize: 13 }}>Эксклюзивный объект</Tag>
         </div>
       </div>
-      <div className={styles.cardContent}>
-        <div className={styles.cardTitle}>{property.title}</div>
-        <div className={styles.cardMeta}>{property.address}</div>
-        <div className={styles.cardMeta}>{formatPrice(property.price)}</div>
-        <div className={styles.cardMeta}>{property.area} м²</div>
-        {/* Блок юридической чистоты */}
-        {property.legalCheck && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0' }}>
-            <PropertySafetyOutlined style={{ fontSize: 20, color: property.legalCheck.status === 'Проверено' ? '#52c41a' : '#faad14' }} />
-            <span style={{ fontWeight: 600, color: property.legalCheck.status === 'Проверено' ? '#52c41a' : '#faad14' }}>{property.legalCheck.status}</span>
-            <span style={{ color: '#888', fontSize: 13 }}>{property.legalCheck.details}</span>
-            {property.legalCheck.date && <span style={{ color: '#b0b6c3', fontSize: 12, marginLeft: 8 }}>{property.legalCheck.date}</span>}
-          </div>
+      <div className={styles.cardContent} style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* Название и адрес */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ fontWeight: 800, fontSize: 18, color: '#222', lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{property.title}</div>
+          <div style={{ fontSize: 13, color: '#888', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{property.address}</div>
+        </div>
+        {/* Цена и площадь */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ fontSize: 16, color: '#2563eb', fontWeight: 700 }}>{formatPrice(property.price)}</div>
+          <div style={{ fontSize: 13, color: '#444', fontWeight: 600 }}>{property.area} м²</div>
+        </div>
+        {/* Характеристики */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: '#666', marginBottom: 0 }}>
+          {property.bedrooms !== undefined && <span><i className="fas fa-bed" style={{ marginRight: 3 }} />{property.bedrooms} спален</span>}
+          {property.bathrooms !== undefined && <span><i className="fas fa-bath" style={{ marginRight: 3 }} />{property.bathrooms} ванн</span>}
+          {property.type && <span><i className="fas fa-home" style={{ marginRight: 3 }} />{property.type}</span>}
+          {property.floor && property.totalFloors && <span><i className="fas fa-layer-group" style={{ marginRight: 3 }} />{property.floor}/{property.totalFloors} эт.</span>}
+        </div>
+        {/* Описание с кнопкой 'Читать далее' если длинное — теперь между характеристиками и юридической чистотой */}
+        {property.description && (
+          <DescriptionWithReadMore text={property.description} maxLines={4} />
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16 }}>
-          {property.agent?.photo ? (
-            <img src={property.agent.photo} alt="Агент" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', boxShadow: '0 2px 8px #e6eaf1' }} />
-          ) : (
-            <UserOutlined style={{ fontSize: 32, color: '#b0b6c3', background: '#f5f7fa', borderRadius: '50%', padding: 4 }} />
-          )}
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 15 }}>{property.agent?.firstName} {property.agent?.lastName}</div>
-            <div style={{ fontSize: 13, color: '#888' }}>{property.agent?.agency?.name || 'Частный агент'}</div>
-            {property.agent?.phone && (
-              <div style={{ fontSize: 14, color: '#1976d2', marginTop: 2 }}>{property.agent.phone}</div>
-            )}
+        {/* Блок юридической чистоты — сразу после описания */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          margin: '6px 0 4px 0',
+          padding: '7px 10px',
+          background: '#fff',
+          borderRadius: 10,
+          boxShadow: '0 1px 4px #e6eaf122',
+          maxWidth: 320,
+          minHeight: 32,
+        }}>
+          <div style={{ fontSize: 16, flexShrink: 0 }}>
+            {legalIcon}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            <span style={{ fontWeight: 700, fontSize: 11, color: legalColor, marginBottom: 0 }}>
+              Юридическая чистота: {legalText}
+            </span>
+            {property.legalCheck?.details && <span style={{ color: '#888', fontSize: 10 }}>{property.legalCheck.details}</span>}
+            {property.legalCheck?.date && <span style={{ color: '#b0b6c3', fontSize: 9 }}>{property.legalCheck?.date}</span>}
           </div>
         </div>
-        <div className={styles.cardActions} style={{ justifyContent: 'flex-end', marginTop: 18 }}>
-          <Tooltip title="Добавить в подбор">
-            <Button
-              shape="circle"
-              icon={<PlusOutlined />}
-              size="large"
-              style={{ marginRight: 8 }}
-              onClick={e => { e.stopPropagation(); setModalOpen(true); }}
-            />
-          </Tooltip>
-          <Tooltip title="Позвонить агенту">
-            <Button
-              shape="circle"
-              icon={<PhoneIcon />}
-              size="large"
-              onClick={e => { e.stopPropagation(); setPhoneModalOpen(true); }}
-            />
-          </Tooltip>
+        {/* Агент и агентство + действия — в одной строке */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 3, marginBottom: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {property.agent?.photo ? (
+              <img src={property.agent.photo} alt="Агент" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', boxShadow: '0 1px 3px #e6eaf1' }} />
+            ) : (
+              <UserOutlined style={{ fontSize: 26, color: '#b0b6c3' }} />
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <span style={{ fontWeight: 700, fontSize: 14 }}>{property.agent?.firstName} {property.agent?.lastName}</span>
+              {property.agent?.agency?.name && <span style={{ fontSize: 12, color: '#888', fontWeight: 500 }}>{property.agent.agency.name}</span>}
+              <span style={{ color: '#888', fontSize: 12 }}>{property.agent?.phone}</span>
+              <span>{renderAgentMessengers()}</span>
+            </div>
+          </div>
+          {/* Действия справа */}
+          <div className={styles.cardActions} style={{ display: 'flex', gap: 6, marginTop: 0, marginBottom: 0 }}>
+            <Tooltip title="Добавить в подбор">
+              <Button
+                shape="circle"
+                icon={<PlusOutlined />}
+                size="large"
+                onClick={e => { e.stopPropagation(); setModalOpen(true); }}
+              />
+            </Tooltip>
+            <Tooltip title="Позвонить агенту">
+              <Button
+                shape="circle"
+                icon={<PhoneIcon />}
+                size="large"
+                onClick={e => { e.stopPropagation(); setPhoneModalOpen(true); }}
+              />
+            </Tooltip>
+          </div>
         </div>
       </div>
       <AddToSelectionModal open={modalOpen} propertyId={property.id} onClose={() => setModalOpen(false)} />
@@ -384,5 +485,60 @@ const PhoneIcon = () => (
     <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1C10.07 21 3 13.93 3 5a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.46.57 3.58a1 1 0 01-.24 1.01l-2.2 2.2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
+
+// Добавляю компонент DescriptionWithReadMore
+const DescriptionWithReadMore: React.FC<{ text: string; maxLines?: number }> = ({ text, maxLines = 4 }) => {
+  const [expanded, setExpanded] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const [truncated, setTruncated] = useState(false);
+
+  React.useEffect(() => {
+    if (ref.current) {
+      setTruncated(ref.current.scrollHeight > ref.current.clientHeight + 2);
+    }
+  }, [text, maxLines]);
+
+  return (
+    <div style={{ position: 'relative', marginTop: 4 }}>
+      <div
+        ref={ref}
+        style={{
+          fontSize: 12,
+          color: '#444',
+          lineHeight: 1.5,
+          maxHeight: expanded ? 'none' : `${maxLines * 1.5 * 1.1}em`,
+          overflow: expanded ? 'visible' : 'hidden',
+          textOverflow: 'ellipsis',
+          display: '-webkit-box',
+          WebkitLineClamp: expanded ? 'unset' : maxLines,
+          WebkitBoxOrient: 'vertical',
+          whiteSpace: 'pre-line',
+          background: 'none',
+          padding: 0,
+        }}
+      >
+        {text}
+      </div>
+      {!expanded && truncated && (
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          width: '100%',
+          height: 32,
+          background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 90%)',
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+        }}>
+          <Button size="small" type="link" style={{ fontSize: 12, padding: 0 }} onClick={() => setExpanded(true)}>Читать далее</Button>
+        </div>
+      )}
+      {expanded && (
+        <Button size="small" type="link" style={{ fontSize: 12, padding: 0, marginTop: 2 }} onClick={() => setExpanded(false)}>Скрыть</Button>
+      )}
+    </div>
+  );
+};
 
 export default PropertyCard;

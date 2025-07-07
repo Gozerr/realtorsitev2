@@ -10,6 +10,9 @@ import { Property, PropertyStatus } from './property.entity';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { User, UserRole } from '../users/user.entity';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { StatisticsService } from '../statistics.service';
+import { StatsGateway } from '../statistics.gateway';
 
 export interface PropertyFilters {
   search?: string;
@@ -39,6 +42,9 @@ export class PropertiesService {
     private notificationsService: NotificationsService,
     @InjectRepository(User)
     private userRepo: Repository<User>,
+    private notificationsGateway: NotificationsGateway,
+    private statisticsService: StatisticsService,
+    private statsGateway: StatsGateway,
   ) {}
 
   private getCacheKey(key: string): string {
@@ -134,23 +140,17 @@ export class PropertiesService {
     if (!agentId || agentId <= 0) {
       throw new BadRequestException('Invalid agent ID');
     }
-
-    const { page = 1, limit = 20 } = options;
-    const skip = (page - 1) * limit;
-
     try {
       const [properties, total] = await this.propertiesRepository.findAndCount({
         where: { agent: { id: agentId } },
         relations: ['agent', 'agent.agency'],
-        skip,
-        take: limit,
-        order: { createdAt: 'DESC' },
+        skip: options.page && options.limit ? (options.page - 1) * options.limit : 0,
+        take: options.limit,
       });
-
       return { properties, total };
     } catch (error) {
       this.logger.error(`Error finding properties for agent ${agentId}:`, error);
-      throw new BadRequestException('Failed to get agent properties');
+      throw new BadRequestException('Failed to get properties for agent');
     }
   }
 
@@ -196,7 +196,7 @@ export class PropertiesService {
       }
 
       if (filters.agentId) {
-        queryBuilder.andWhere('agent.id = :agentId', { agentId: filters.agentId });
+        queryBuilder.andWhere('property."agentId" = :agentId', { agentId: filters.agentId });
       }
 
       const [properties, total] = await queryBuilder
@@ -238,6 +238,10 @@ export class PropertiesService {
       });
 
       this.logger.log(`Property created: ${saved.id} by agent ${agentId}`);
+
+      const stats = await this.statisticsService.getStatistics();
+      this.statsGateway.broadcast(stats);
+
       return saved;
     } catch (error) {
       this.logger.error('Error creating property:', error);
@@ -276,6 +280,10 @@ export class PropertiesService {
       });
 
       this.logger.log(`Property updated: ${propertyId} by user ${userId}`);
+
+      const stats = await this.statisticsService.getStatistics();
+      this.statsGateway.broadcast(stats);
+
       return saved;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
@@ -314,6 +322,9 @@ export class PropertiesService {
       });
 
       this.logger.log(`Property deleted: ${propertyId} by user ${userId}`);
+
+      const stats = await this.statisticsService.getStatistics();
+      this.statsGateway.broadcast(stats);
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       this.logger.error(`Error deleting property ${propertyId}:`, error);
@@ -333,6 +344,10 @@ export class PropertiesService {
       title: 'Объект архивирован',
       description: `Объект "${property.title}" был перемещён в архив`,
     });
+
+    const stats = await this.statisticsService.getStatistics();
+    this.statsGateway.broadcast(stats);
+
     return saved;
   }
 
@@ -348,6 +363,10 @@ export class PropertiesService {
       title: 'Объект восстановлен',
       description: `Объект "${property.title}" восстановлен из архива`,
     });
+
+    const stats = await this.statisticsService.getStatistics();
+    this.statsGateway.broadcast(stats);
+
     return saved;
   }
 
@@ -363,6 +382,10 @@ export class PropertiesService {
       title: isExclusive ? 'Эксклюзивность установлена' : 'Эксклюзивность снята',
       description: `Объект "${property.title}" теперь ${isExclusive ? 'эксклюзивный' : 'не эксклюзивный'}`,
     });
+
+    const stats = await this.statisticsService.getStatistics();
+    this.statsGateway.broadcast(stats);
+
     return saved;
   }
 
@@ -380,11 +403,18 @@ export class PropertiesService {
 
   async updateStatus(propertyId: number, newStatus: PropertyStatus, userId: number): Promise<Property> {
     const property = await this.propertiesRepository.findOne({ where: { id: propertyId }, relations: ['agent', 'agent.agency'] });
+    console.log('[updateStatus] property:', property);
+    console.log('[updateStatus] property.agent:', property?.agent);
+    console.log('[updateStatus] property.agent.id:', property?.agent?.id, typeof property?.agent?.id);
+    console.log('[updateStatus] userId:', userId, typeof userId);
     if (!property) throw new Error('Объект не найден');
+    if (!property.agent || property.agent.id !== userId) {
+      throw new Error('Только закреплённый агент может менять статус объекта');
+    }
     const oldStatus = property.status;
     if (oldStatus === newStatus) return property;
     property.status = newStatus;
-    const saved = await this.propertiesRepository.save(property);
+    await this.propertiesRepository.save(property);
     // Получаем всех агентов
     const agents = await this.userRepo.find({ where: { role: UserRole.AGENT } });
     const agentIds = agents.map(a => a.id);
@@ -406,7 +436,14 @@ export class PropertiesService {
         description: `Объект "${property.title}" теперь имеет статус: ${newStatus}`,
       });
     }
-    return saved;
+    // Вернуть актуальный объект с relations
+    const updated = await this.propertiesRepository.findOne({ where: { id: propertyId }, relations: ['agent', 'agent.agency'] });
+    if (!updated) throw new Error('Объект не найден после обновления');
+
+    const stats = await this.statisticsService.getStatistics();
+    this.statsGateway.broadcast(stats);
+
+    return updated;
   }
 
   // Поиск объектов по bbox (карта) с лимитом и пагинацией

@@ -6,6 +6,7 @@ import UniversalMapYandex from '../components/UniversalMapYandex';
 import { useNavigate } from 'react-router-dom';
 import { usePropertiesContext } from '../context/PropertiesContext';
 import { AuthContext } from '../context/AuthContext';
+import { Property, PropertyStatus } from '../types';
 
 const { Title } = Typography;
 
@@ -31,6 +32,7 @@ export default function PropertiesPage() {
     updateFilters,
     resetFilters,
     properties,
+    setProperties,
     loading,
     selectedId,
     setSelectedId,
@@ -51,7 +53,7 @@ export default function PropertiesPage() {
           return p.agent?.id === auth.user.id || p.agentId === auth.user.id;
         } else if (auth?.user?.role === 'director') {
           if (auth.user.agencyId) {
-            return (p.agencyId && p.agencyId === auth.user.agencyId) || (p.agent && 'agencyId' in p.agent && p.agent.agencyId === auth.user.agencyId);
+            return (p.agent && p.agent.agency && p.agent.agency.id === auth.user.agencyId);
           }
           return true;
         }
@@ -90,6 +92,10 @@ export default function PropertiesPage() {
 
   // Для карты: только объекты с координатами
   const propertiesWithCoords = filteredProperties.filter(p => p.lat && p.lng);
+
+  const handleStatusChange = (id: number, status: string, updatedProperty?: Property) => {
+    setProperties((prev: Property[]) => prev.map((p: Property) => p.id === id ? (updatedProperty ? updatedProperty : { ...p, status: status as PropertyStatus }) : p));
+  };
 
   console.log('properties:', properties);
 
@@ -230,7 +236,7 @@ export default function PropertiesPage() {
           <Row gutter={[24, 24]} style={{ margin: 0 }}>
             {filteredProperties.map(property => (
               <Col xs={24} sm={12} md={8} lg={8} key={property.id} style={{ display: 'flex' }}>
-                <PropertyCard property={property} />
+                <PropertyCard property={property} onStatusChange={handleStatusChange} />
               </Col>
             ))}
           </Row>

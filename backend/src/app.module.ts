@@ -63,7 +63,9 @@ import { ChatModule } from './chat/chat.module';
     }),
   ],
   controllers: [AppController, UploadController],
-  providers: [AppService],
+  providers: [
+    AppService,
+  ],
 })
 export class AppModule {
   constructor() {

@@ -44,8 +44,9 @@ export const createProperty = async (data: CreatePropertyData, token: string): P
   return response.data;
 };
 
-export const updatePropertyStatus = async (id: number, status: string) => {
-  const response = await api.patch(`/api/properties/${id}/status`, { status });
+export const updatePropertyStatus = async (id: number, status: string, token?: string) => {
+  const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+  const response = await api.patch(`/api/properties/${id}/status`, { status }, headers ? { headers } : undefined);
   return response.data;
 };
 

@@ -132,14 +132,8 @@ export const ChatWidget: React.FC<ChatWidgetProps & { limitLastN?: number }> = (
   }, [chatId, jwt]);
 
   useEffect(() => {
-    if (messagesEndRef.current && scrollableRef.current) {
-      const scrollable = scrollableRef.current;
-      if (
-        scrollable.contains(messagesEndRef.current) &&
-        scrollable.scrollHeight > scrollable.clientHeight
-      ) {
-        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-      }
+    if (scrollableRef.current) {
+      scrollableRef.current.scrollTop = scrollableRef.current.scrollHeight;
     }
   }, [messages]);
 
@@ -254,6 +248,7 @@ export const ChatWidget: React.FC<ChatWidgetProps & { limitLastN?: number }> = (
       boxShadow: 'none',
       padding: 0,
       minHeight: 320,
+      maxHeight: 480,
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
@@ -263,7 +258,7 @@ export const ChatWidget: React.FC<ChatWidgetProps & { limitLastN?: number }> = (
       flex: 1,
     }}>
       {/* Основной блок сообщений с нормальными стилями */}
-      <div ref={scrollableRef} style={{ flex: 1, overflowY: 'auto', minHeight: 0, height: '100%', position: 'relative' }}>
+      <div ref={scrollableRef} style={{ flex: 1, overflowY: 'auto', minHeight: 0, maxHeight: 256, height: 'auto', position: 'relative' }}>
         {loading ? (
           <Spin style={{ margin: '40px auto', display: 'block' }} />
         ) : visibleMessages.length === 0 ? (

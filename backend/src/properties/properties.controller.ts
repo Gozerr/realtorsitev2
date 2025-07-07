@@ -15,6 +15,9 @@ import { PropertiesService } from './properties.service';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PropertyStatus } from './property.entity';
+import { plainToInstance } from 'class-transformer';
+import { UserPublicDto } from '../users/dto/user-public.dto';
+import { PropertyPublicDto } from './dto/property-public.dto';
 
 @Controller('properties')
 export class PropertiesController {
@@ -26,8 +29,9 @@ export class PropertiesController {
   }
 
   @Get('recent')
-  findAllRecent() {
-    return this.propertiesService.findAllRecent();
+  async findAllRecent() {
+    const properties = await this.propertiesService.findAllRecent();
+    return plainToInstance(PropertyPublicDto, properties, { excludeExtraneousValues: true });
   }
 
   @Get('all-photos')
@@ -67,7 +71,8 @@ export class PropertiesController {
   @UseGuards(JwtAuthGuard)
   @Patch(':id/status')
   async updateStatus(@Param('id') id: string, @Body() body: { status: PropertyStatus }, @Request() req) {
-    const userId = req.user.id;
+    console.log('[controller] req.user:', req.user);
+    const userId = req.user?.id;
     return this.propertiesService.updateStatus(+id, body.status, userId);
   }
 
@@ -81,6 +86,6 @@ export class PropertiesController {
     if (!property) {
       throw new NotFoundException('Объект недвижимости не найден');
     }
-    return property;
+    return plainToInstance(PropertyPublicDto, property, { excludeExtraneousValues: true });
   }
 }

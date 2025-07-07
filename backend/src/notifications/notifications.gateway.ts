@@ -20,4 +20,8 @@ export class NotificationsGateway {
   broadcastNotification(notification: any) {
     this.server.emit('newNotification', notification);
   }
+
+  broadcastStatistics(stats: any) {
+    this.server.emit('statsUpdate', stats);
+  }
 } 
