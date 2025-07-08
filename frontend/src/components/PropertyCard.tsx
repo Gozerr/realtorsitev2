@@ -2,7 +2,7 @@ import React, { useState, useContext, useRef, useCallback } from 'react';
 import { Card, Carousel, Tag, Button, Tooltip, Modal, Form, Select, Space, Typography, Skeleton, Badge } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { Property } from '../types';
-import { MessageOutlined, PlusOutlined, HeartOutlined, HeartFilled, EyeOutlined, EditOutlined, DeleteOutlined, UserOutlined, PropertySafetyOutlined, WarningOutlined, SyncOutlined } from '@ant-design/icons';
+import { MessageOutlined, PlusOutlined, HeartOutlined, HeartFilled, EyeOutlined, EditOutlined, DeleteOutlined, UserOutlined, PropertySafetyOutlined, WarningOutlined, SyncOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
 import AddToSelectionModal from './AddToSelectionModal';
 import { updatePropertyStatus } from '../services/property.service';
 import { AuthContext } from '../context/AuthContext';
@@ -178,6 +178,80 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
     onDelete?.(property.id);
   }, [onDelete, property.id]);
 
+  // --- Слайдер для фото ---
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const dragState = useRef({ startX: 0, dragging: false, lastX: 0 });
+
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+    dragState.current.dragging = true;
+    if ('touches' in e) {
+      const evt = e as unknown as React.TouchEvent;
+      if (evt.touches && evt.touches.length > 0) {
+        dragState.current.startX = evt.touches[0].clientX;
+        dragState.current.lastX = evt.touches[0].clientX;
+      }
+    } else {
+      const evt = e as React.MouseEvent;
+      dragState.current.startX = evt.clientX;
+      dragState.current.lastX = evt.clientX;
+    }
+  };
+  const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!dragState.current.dragging) return;
+    let x;
+    if ('touches' in e) {
+      const evt = e as unknown as React.TouchEvent;
+      if (evt.touches && evt.touches.length > 0) {
+        x = evt.touches[0].clientX;
+      } else {
+        return;
+      }
+    } else {
+      const evt = e as React.MouseEvent;
+      x = evt.clientX;
+    }
+    const dx = x - dragState.current.lastX;
+    dragState.current.lastX = x;
+    // Можно добавить визуальный сдвиг, если нужно
+  };
+  const handleDragEnd = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!dragState.current.dragging) return;
+    dragState.current.dragging = false;
+    let endX;
+    if ('changedTouches' in e) {
+      const evt = e as unknown as React.TouchEvent;
+      if (evt.changedTouches && evt.changedTouches.length > 0) {
+        endX = evt.changedTouches[0].clientX;
+      } else {
+        return;
+      }
+    } else if ('touches' in e) {
+      const evt = e as unknown as React.TouchEvent;
+      if (evt.touches && evt.touches.length > 0) {
+        endX = evt.touches[0].clientX;
+      } else {
+        return;
+      }
+    } else {
+      const evt = e as React.MouseEvent;
+      endX = evt.clientX;
+    }
+    const delta = endX - dragState.current.startX;
+    if (Math.abs(delta) > 40) {
+      if (delta < 0 && currentSlide < images.length - 1) setCurrentSlide(currentSlide + 1);
+      if (delta > 0 && currentSlide > 0) setCurrentSlide(currentSlide - 1);
+    }
+  };
+  const goToPrev = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (currentSlide > 0) setCurrentSlide(currentSlide - 1);
+  };
+  const goToNext = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (currentSlide < images.length - 1) setCurrentSlide(currentSlide + 1);
+  };
+
   if (loading) {
     return (
       <Card style={{ width: 300, marginBottom: 16, ...style }}>
@@ -320,17 +394,68 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         style={{ margin: 6, boxShadow: '0 2px 8px 0 rgba(10,37,64,0.06)', cursor: isModalActive ? 'default' : 'pointer', minWidth: 0, minHeight: 0, maxWidth: 360 }}
         {...(!isModalActive ? { onClick: handleCardClick } : {})}
       >
-        <div className={styles.cardImage} style={{ height: 90, borderRadius: 10 }}>
-          <OptimizedImage
-            src={mainImage}
-            alt={property.title}
-            preview={false}
-            width="100%"
-            height={90}
-            style={{ objectFit: 'cover', borderRadius: 10 }}
-            lazy={true}
-            fallback="/placeholder-property.jpg"
-          />
+        <div
+          className={styles.cardImage}
+          style={{ height: 90, borderRadius: 10, position: 'relative', overflow: 'hidden', userSelect: 'none' }}
+          ref={sliderRef}
+          onMouseDown={handleDragStart}
+          onMouseMove={handleDragMove}
+          onMouseUp={handleDragEnd}
+          onMouseLeave={handleDragEnd}
+          onTouchStart={handleDragStart}
+          onTouchMove={handleDragMove}
+          onTouchEnd={handleDragEnd}
+        >
+          {images.length > 1 ? (
+            <>
+              <img
+                src={images[currentSlide] || '/placeholder-property.jpg'}
+                alt={property.title}
+                style={{ width: '100%', height: 90, objectFit: 'cover', borderRadius: 10, transition: '0.3s' }}
+                draggable={false}
+              />
+              {/* Стрелки */}
+              {currentSlide > 0 && (
+                <Button
+                  type="default"
+                  shape="circle"
+                  icon={<LeftOutlined />}
+                  size="small"
+                  style={{ position: 'absolute', top: '50%', left: 6, transform: 'translateY(-50%)', zIndex: 2, background: '#fff', opacity: 0.8 }}
+                  onClick={goToPrev}
+                  tabIndex={-1}
+                />
+              )}
+              {currentSlide < images.length - 1 && (
+                <Button
+                  type="default"
+                  shape="circle"
+                  icon={<RightOutlined />}
+                  size="small"
+                  style={{ position: 'absolute', top: '50%', right: 6, transform: 'translateY(-50%)', zIndex: 2, background: '#fff', opacity: 0.8 }}
+                  onClick={goToNext}
+                  tabIndex={-1}
+                />
+              )}
+              {/* Индикаторы */}
+              <div style={{ position: 'absolute', bottom: 6, left: 0, width: '100%', display: 'flex', justifyContent: 'center', gap: 4 }}>
+                {images.map((_, idx) => (
+                  <span key={idx} style={{ width: 8, height: 8, borderRadius: '50%', background: idx === currentSlide ? '#1976d2' : '#eee', display: 'inline-block' }} />
+                ))}
+              </div>
+            </>
+          ) : (
+            <OptimizedImage
+              src={mainImage}
+              alt={property.title}
+              preview={false}
+              width="100%"
+              height={90}
+              style={{ objectFit: 'cover', borderRadius: 10 }}
+              lazy={true}
+              fallback="/placeholder-property.jpg"
+            />
+          )}
         </div>
         <div className={styles.cardContent} style={{ padding: '10px 12px 8px 12px' }}>
           <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{property.title}</div>
@@ -350,17 +475,68 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={handleMouseLeaveSlider}
     >
-      <div className={styles.cardImage}>
-        <OptimizedImage
-          src={mainImage}
-          alt={property.title}
-          preview={false}
-          width="100%"
-          height={220}
-          style={{ objectFit: 'cover', borderRadius: 16 }}
-          lazy={true}
-          fallback="/placeholder-property.jpg"
-        />
+      <div
+        className={styles.cardImage}
+        style={{ position: 'relative', overflow: 'hidden', userSelect: 'none', borderRadius: 16, height: 220 }}
+        ref={sliderRef}
+        onMouseDown={handleDragStart}
+        onMouseMove={handleDragMove}
+        onMouseUp={handleDragEnd}
+        onMouseLeave={handleDragEnd}
+        onTouchStart={handleDragStart}
+        onTouchMove={handleDragMove}
+        onTouchEnd={handleDragEnd}
+      >
+        {images.length > 1 ? (
+          <>
+            <img
+              src={images[currentSlide] || '/placeholder-property.jpg'}
+              alt={property.title}
+              style={{ width: '100%', height: 220, objectFit: 'cover', borderRadius: 16, transition: '0.3s' }}
+              draggable={false}
+            />
+            {/* Стрелки */}
+            {currentSlide > 0 && (
+              <Button
+                type="default"
+                shape="circle"
+                icon={<LeftOutlined />}
+                size="small"
+                style={{ position: 'absolute', top: '50%', left: 10, transform: 'translateY(-50%)', zIndex: 2, background: '#fff', opacity: 0.8 }}
+                onClick={goToPrev}
+                tabIndex={-1}
+              />
+            )}
+            {currentSlide < images.length - 1 && (
+              <Button
+                type="default"
+                shape="circle"
+                icon={<RightOutlined />}
+                size="small"
+                style={{ position: 'absolute', top: '50%', right: 10, transform: 'translateY(-50%)', zIndex: 2, background: '#fff', opacity: 0.8 }}
+                onClick={goToNext}
+                tabIndex={-1}
+              />
+            )}
+            {/* Индикаторы */}
+            <div style={{ position: 'absolute', bottom: 10, left: 0, width: '100%', display: 'flex', justifyContent: 'center', gap: 4 }}>
+              {images.map((_, idx) => (
+                <span key={idx} style={{ width: 10, height: 10, borderRadius: '50%', background: idx === currentSlide ? '#1976d2' : '#eee', display: 'inline-block' }} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <OptimizedImage
+            src={mainImage}
+            alt={property.title}
+            preview={false}
+            width="100%"
+            height={220}
+            style={{ objectFit: 'cover', borderRadius: 16 }}
+            lazy={true}
+            fallback="/placeholder-property.jpg"
+          />
+        )}
         <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 2, display: 'flex', gap: 8 }}>
           {canEditStatus ? (
             <Select

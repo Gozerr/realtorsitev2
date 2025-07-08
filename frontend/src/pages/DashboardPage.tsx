@@ -4,7 +4,7 @@ import { getRecentProperties, createProperty, getStatistics, getAllProperties } 
 import { Property, CreatePropertyData } from '../types';
 import CreatePropertyForm from '../components/CreatePropertyForm';
 import PropertyCard from '../components/PropertyCard';
-import { Button, Modal, Spin, Alert, Row, Col, Card, Statistic, Typography, Divider, Empty, Checkbox, Popover, Tooltip } from 'antd';
+import { Button, Modal, Spin, Alert, Row, Col, Card, Statistic, Typography, Divider, Empty, Checkbox, Popover, Tooltip, Avatar } from 'antd';
 import { HomeOutlined, CheckSquareOutlined, StarOutlined, PlusOutlined, FireOutlined, CalendarOutlined, TrophyOutlined, UserAddOutlined, RiseOutlined, DollarOutlined, TeamOutlined, SettingOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { useUserContext } from '../context/UserContext';
@@ -53,14 +53,13 @@ const AGENT_METRICS = [
     key: 'sold',
     label: 'Продано вами',
     icon: <CheckSquareOutlined style={{ fontSize: 26, color: '#059669' }} />,
-    getValue: (props: AgentProperty[], clients: AgentClient[], stats?: any) => stats?.soldCount ?? props.filter((p: AgentProperty) => ['sold', 'продан', 'продано'].includes((p.status || '').toLowerCase())).length,
+    getValue: (props: AgentProperty[], clients: AgentClient[]) => props.filter((p: AgentProperty) => ['sold', 'продан', 'продано'].includes((p.status || '').toLowerCase())).length,
   },
   {
     key: 'maxPrice',
     label: 'Самый дорогой объект',
     icon: <DollarOutlined style={{ fontSize: 26, color: '#f59e42' }} />,
-    getValue: (props: AgentProperty[], clients: AgentClient[], stats?: any) => {
-      if (stats?.maxSoldPrice && stats?.maxSoldPrice !== '0') return `${Number(stats.maxSoldPrice).toLocaleString()} ₽`;
+    getValue: (props: AgentProperty[], clients: AgentClient[]) => {
       const sold = props.filter((p: AgentProperty) => ['sold', 'продан', 'продано'].includes((p.status || '').toLowerCase()));
       const max = sold.reduce((m: number, p: AgentProperty) => Math.max(m, Number(p.price) || 0), 0);
       return max ? `${max.toLocaleString()} ₽` : '-';
@@ -71,23 +70,23 @@ const AGENT_METRICS = [
     key: 'salesGrowth',
     label: 'Динамика продаж',
     icon: <RiseOutlined style={{ fontSize: 26, color: '#3b82f6' }} />,
-    getValue: (props: AgentProperty[], clients: AgentClient[], stats?: any) => stats?.salesGrowth ?? 0,
+    getValue: (props: AgentProperty[], clients: AgentClient[]) => 0,
   },
   {
     key: 'clients',
     label: 'Клиентов в работе',
     icon: <TeamOutlined style={{ fontSize: 26, color: '#3b82f6' }} />,
-    getValue: (props: AgentProperty[], clients: AgentClient[], stats?: any) => stats?.clientsCount ?? clients.filter((c: AgentClient) => (c.status || '').toLowerCase() === 'в работе').length,
+    getValue: (props: AgentProperty[], clients: AgentClient[]) => clients.filter((c: AgentClient) => (c.status || '').toLowerCase() === 'в работе').length,
   },
   {
     key: 'newClientsMonth',
     label: 'Новых клиентов за месяц',
     icon: <UserAddOutlined style={{ fontSize: 26, color: '#f59e42' }} />,
-    getValue: (props: AgentProperty[], clients: AgentClient[], stats?: any) => stats?.newClientsMonth ?? (() => {
+    getValue: (props: AgentProperty[], clients: AgentClient[]) => {
       const now = new Date();
       const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
       return clients.filter((c: AgentClient) => c.createdAt && new Date(c.createdAt) > monthAgo).length;
-    })(),
+    },
   },
 ];
 
@@ -120,6 +119,8 @@ const DashboardPage = () => {
     return JSON.parse(localStorage.getItem('dashboardAgentMetrics') || 'null') || DEFAULT_AGENT_METRICS;
   });
   const [showAgentSettings, setShowAgentSettings] = useState(false);
+  const userRole = (authContext?.user?.role || '').toLowerCase();
+  const isAgent = userRole === 'agent' || userRole === 'агент';
 
   useEffect(() => {
     if (stats) {
@@ -127,18 +128,13 @@ const DashboardPage = () => {
     }
   }, [stats]);
 
-  // Функция для определения времени суток и приветствия
+  // Функция для приветствия по времени суток
   const getGreeting = () => {
     const hour = new Date().getHours();
-    const userName = authContext?.user?.firstName || 'Агент';
-    
-    if (hour >= 5 && hour < 12) {
-      return `Доброе утро, ${userName}!`;
-    } else if (hour >= 12 && hour < 18) {
-      return `Добрый день, ${userName}!`;
-    } else {
-      return `Добрый вечер, ${userName}!`;
-    }
+    if (hour >= 5 && hour < 12) return 'Доброе утро';
+    if (hour >= 12 && hour < 18) return 'Добрый день';
+    if (hour >= 18 && hour < 23) return 'Добрый вечер';
+    return 'Доброй ночи';
   };
 
   const fetchDashboardData = async () => {
@@ -163,30 +159,20 @@ const DashboardPage = () => {
   };
 
   const fetchAgentData = async () => {
-    if (!userData) return;
+    if (!userData && !authContext?.user) return;
+    const currentUserId = (userData?.id || authContext?.user?.id);
     try {
       const propsRes = await getAllProperties();
-      console.log('userData:', userData);
-      console.log('all properties:', propsRes.properties);
-      // Автоматический подбор agentId
-      let agentId = userData.id;
-      if (!propsRes.properties.some((p: Property) => p.agent?.id === agentId)) {
-        for (const key of Object.keys(userData)) {
-          if (propsRes.properties.some((p: Property) => p.agent?.id === userData[key])) {
-            agentId = userData[key];
-            console.log('Matched agentId by key', key, ':', agentId);
-            break;
-          }
-        }
-      }
-      const agentProps = propsRes.properties.filter((p: Property) => p.agent?.id === agentId);
-      console.log('Final agentId for filter:', agentId);
-      console.log('agentProperties:', agentProps);
+      // Фильтруем только объекты текущего пользователя (агента)
+      const agentProps = propsRes.properties.filter((p: Property) => p.agent?.id === currentUserId);
       setAgentProperties(agentProps);
       if (authContext?.token) {
         const clientsRes = await getClients(authContext.token);
-        console.log('all clients:', clientsRes);
-        setClients(clientsRes);
+        // Если у клиента есть поле agentId, фильтруем по нему. Если нет — оставляем всех (или доработать API)
+        const agentClients = Array.isArray(clientsRes) && clientsRes.length > 0 && 'agentId' in clientsRes[0]
+          ? clientsRes.filter((c: any) => c.agentId === currentUserId)
+          : clientsRes;
+        setClients(agentClients);
       }
     } catch (e) {
       // ...
@@ -249,73 +235,80 @@ const DashboardPage = () => {
       padding: '24px 0'
     }}>
       <div style={{ width: '100%' }}>
-        {/* Современный приветственный блок с метриками */}
+        {/* Современный приветственный блок */}
         <div
-          className="dashboard-welcome-card"
+          className="dashboard-welcome-card-modern"
           style={{
             marginBottom: 32,
-            padding: '32px',
-            background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%)',
-            borderRadius: '20px',
-            border: '1px solid var(--border-color)',
-            boxShadow: '0 20px 40px var(--shadow-color), 0 8px 16px var(--shadow-light)',
-            position: 'relative',
-            overflow: 'hidden',
+            padding: '40px 32px',
+            background: 'linear-gradient(120deg, #f8fafc 0%, #e0e7ef 100%)',
+            borderRadius: '28px',
+            border: '1px solid #e0e7ef',
+            boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.10)',
             display: 'flex',
             alignItems: 'center',
-            gap: 32,
+            gap: 36,
+            position: 'relative',
+            overflow: 'hidden',
+            minHeight: 180,
             animation: 'fadeInUp 0.7s cubic-bezier(.23,1.01,.32,1)'
           }}
         >
-          {/* Аватар */}
+          {/* Аватар: крупный, квадратный с сильным скруглением, тенью и рамкой */}
           <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <SmartAvatar src={avatarUrl} size={72} style={{ boxShadow: '0 4px 16px #dbeafe', border: '3px solid #fff' }} />
-          </div>
-          {/* Приветствие и цитата */}
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ fontSize: 24, fontWeight: 700, color: '#1a1a1a', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>Добро пожаловать, {userName}! <span role="img" aria-label="wave">👋</span></span>
+            <div style={{
+              borderRadius: 40,
+              boxShadow: '0 12px 64px #dbeafe',
+              border: '6px solid #fff',
+              padding: 8,
+              background: 'linear-gradient(135deg, #e0e7ef 0%, #f8fafc 100%)',
+              width: 240,
+              height: 240,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <SmartAvatar src={avatarUrl} size={224} style={{ borderRadius: 40, width: 224, height: 224, objectFit: 'cover' }} />
             </div>
-            <div style={{ fontSize: 15, color: '#6b7280', marginBottom: 8, fontStyle: 'italic' }}>
-              “{quote}”
-            </div>
-            <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 0 }}>{dateString}</div>
           </div>
-          {/* Метрики: статистика агента */}
-          <div style={{ display: 'flex', gap: 24, flex: '0 0 auto', alignItems: 'center', minWidth: 320 }}>
-            {AGENT_METRICS.filter(m => selectedAgentMetrics.includes(m.key)).map(m => (
-              <div key={m.key} style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: 90, padding: '10px 0', borderRadius: 12, background: 'none', boxShadow: 'none', flex: '0 1 110px', marginBottom: 4, transition: 'box-shadow 0.3s',
-              }}>
-                {m.icon}
-                <div style={{ fontSize: 22, fontWeight: 700, color: '#1a1a1a', lineHeight: 1, ...(m.valueStyle || {}) }}>{m.getValue(agentProperties, clients, stats)}</div>
-                <div style={{ fontSize: 12, color: '#888', marginTop: 2, textAlign: 'center', lineHeight: 1.2 }}>{m.label}</div>
+          {/* Текстовая часть + статистика агента */}
+          <div style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ fontWeight: 800, fontSize: 28, color: '#1a1a1a', marginBottom: 2, letterSpacing: 0.5 }}>
+              {getGreeting()}, {authContext?.user?.firstName || 'Гость'}
+            </div>
+            <div style={{ color: '#888', fontSize: 15, marginBottom: 2, fontStyle: 'italic', maxWidth: 420, background: '#f3f6fa', borderRadius: 12, padding: '10px 18px', boxShadow: '0 2px 8px #e0e7ef', display: 'inline-block' }}>
+              "Секрет успеха — начать."
+            </div>
+            <div style={{ color: '#b0b0b0', fontSize: 13, marginTop: 2 }}>
+              {new Date().toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
+            {/* Современный блок статистики агента */}
+            {isAgent && (
+              <div style={{ display: 'flex', gap: 18, marginTop: 18, flexWrap: 'wrap' }}>
+                {AGENT_METRICS.filter(m => selectedAgentMetrics.includes(m.key)).map(m => (
+                  <div key={m.key} style={{
+                    background: 'linear-gradient(120deg, #f8fafc 60%, #e0e7ef 100%)',
+                    borderRadius: 18,
+                    boxShadow: '0 2px 12px 0 rgba(31,38,135,0.07)',
+                    padding: '18px 22px',
+                    minWidth: 110,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    transition: 'box-shadow 0.3s',
+                    marginBottom: 4,
+                    animation: 'fadeInUp 0.7s cubic-bezier(.23,1.01,.32,1)',
+                  }}>
+                    {m.icon}
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#1a1a1a', lineHeight: 1.1, marginTop: 2, ...(m.valueStyle || {}) }}>{m.getValue(agentProperties, clients)}</div>
+                    <div style={{ fontSize: 13, color: '#888', marginTop: 4, textAlign: 'center', lineHeight: 1.2 }}>{m.label}</div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-          <Popover
-            content={
-              <Checkbox.Group
-                options={AGENT_METRICS.map(m => ({ label: m.label, value: m.key }))}
-                value={selectedAgentMetrics}
-                onChange={checked => {
-                  setSelectedAgentMetrics(checked);
-                  localStorage.setItem('dashboardAgentMetrics', JSON.stringify(checked));
-                }}
-                style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6 }}
-              />
-            }
-            title="Выберите метрики"
-            trigger="click"
-            open={showAgentSettings}
-            onOpenChange={setShowAgentSettings}
-            placement="bottomRight"
-          >
-            <SettingOutlined style={{ fontSize: 22, color: '#888', cursor: 'pointer', marginLeft: 18 }} onClick={() => setShowAgentSettings(!showAgentSettings)} />
-          </Popover>
         </div>
 
-        {/* Statistics Cards */}
+        {/* Statistics Cards — для всех ролей */}
+        <div style={{ fontWeight: 700, fontSize: 17, color: '#1976d2', margin: '0 0 12px 8px' }}>Статистика</div>
         <Row className="dashboard-stats" gutter={[24, 24]} style={{ marginBottom: 32, justifyContent: 'center' }}>
           <Col xs={24} sm={12} md={6} lg={6}>
             <div style={{

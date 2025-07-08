@@ -243,9 +243,9 @@ export const ChatWidget: React.FC<ChatWidgetProps & { limitLastN?: number }> = (
 
   return (
     <div style={{
-      background: '#fff',
-      borderRadius: 0,
-      boxShadow: 'none',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e9f0fb 100%)',
+      borderRadius: 18,
+      boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.10)',
       padding: 0,
       minHeight: 440,
       maxHeight: 770,
@@ -258,7 +258,7 @@ export const ChatWidget: React.FC<ChatWidgetProps & { limitLastN?: number }> = (
       flex: 1,
     }}>
       {/* Основной блок сообщений с нормальными стилями */}
-      <div ref={scrollableRef} style={{ flex: '1 1 0%', overflowY: 'auto', minHeight: 0, height: '100%', position: 'relative', padding: '8px 0 4px' }}>
+      <div ref={scrollableRef} style={{ flex: '1 1 0%', overflowY: 'auto', minHeight: 0, height: '100%', position: 'relative', padding: '18px 0 8px', background: 'transparent' }}>
         {loading ? (
           <Spin style={{ margin: '40px auto', display: 'block' }} />
         ) : visibleMessages.length === 0 ? (
@@ -286,8 +286,9 @@ export const ChatWidget: React.FC<ChatWidgetProps & { limitLastN?: number }> = (
                 display: 'flex',
                 flexDirection: isMe ? 'row-reverse' : 'row',
                 alignItems: 'flex-end',
-                margin: '8px 0',
-                padding: '0 16px',
+                margin: '14px 0',
+                padding: '0 24px',
+                animation: 'fadeInUp 0.4s',
               }}>
                 {/* Аватар автора сообщения */}
                 {(() => {
@@ -296,25 +297,26 @@ export const ChatWidget: React.FC<ChatWidgetProps & { limitLastN?: number }> = (
                     authorAvatar = authorAvatar.replace('/avatars/', '/avatars/thumbnails/');
                   }
                   return (
-                    <div style={{ minWidth: 36, minHeight: 36, margin: isMe ? '0 0 0 12px' : '0 12px 0 0' }}>
+                    <div style={{ minWidth: 42, minHeight: 42, margin: isMe ? '0 0 0 14px' : '0 14px 0 0' }}>
                       <img
                         src={authorAvatar}
                         alt={author?.firstName || '?'}
-                        style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', background: '#f2f3f5', display: authorAvatar ? 'block' : 'none' }}
+                        style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', background: '#f2f3f5', display: authorAvatar ? 'block' : 'none', boxShadow: '0 2px 8px #e6eaf1' }}
                         onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                       />
                       {!authorAvatar && (
                         <div style={{
-                          width: 36,
-                          height: 36,
+                          width: 42,
+                          height: 42,
                           borderRadius: '50%',
-                          background: '#f2f3f5',
+                          background: '#e6eaf1',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontWeight: 700,
                           color: '#bbb',
-                          fontSize: 16,
+                          fontSize: 18,
+                          boxShadow: '0 2px 8px #e6eaf1',
                         }}>
                           {author?.firstName ? author.firstName[0] : '?'}
                         </div>
@@ -323,47 +325,48 @@ export const ChatWidget: React.FC<ChatWidgetProps & { limitLastN?: number }> = (
                   );
                 })()}
                 <div style={{
-                  maxWidth: 420,
-                  background: isMe ? '#2563eb' : '#f2f3f5',
+                  maxWidth: 480,
+                  background: isMe ? 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)' : 'linear-gradient(135deg, #fff 0%, #f2f3f5 100%)',
                   color: isMe ? '#fff' : '#222',
-                  borderRadius: isMe ? '18px 18px 6px 18px' : '18px 18px 18px 6px',
-                  padding: '12px 16px 8px 16px',
+                  borderRadius: isMe ? '22px 22px 8px 22px' : '22px 22px 22px 8px',
+                  padding: '16px 22px 12px 22px',
                   fontSize: 16,
                   fontWeight: 400,
                   wordBreak: 'break-word',
                   marginLeft: isMe ? 0 : 0,
                   marginRight: isMe ? 0 : 0,
-                  boxShadow: 'none',
+                  boxShadow: '0 2px 16px #e6eaf1',
                   position: 'relative',
                   display: 'flex',
                   flexDirection: 'column',
-                  minHeight: 48,
+                  minHeight: 52,
                   justifyContent: 'flex-end',
+                  transition: 'background 0.2s',
                 }}>
-                  <span style={{ display: 'block', marginBottom: 4 }}>{msg.text}</span>
-                  <span style={{ fontSize: 13, color: isMe ? '#dbeafe' : '#888', textAlign: 'right', alignSelf: 'flex-end', lineHeight: 1 }}>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span style={{ display: 'block', marginBottom: 6, whiteSpace: 'pre-line' }}>{msg.text}</span>
+                  <span style={{ fontSize: 13, color: isMe ? '#dbeafe' : '#888', textAlign: 'right', alignSelf: 'flex-end', lineHeight: 1, marginTop: 2 }}>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
               </div>
             );
           })
         )}
         <div ref={messagesEndRef} />
-        {someoneTyping && <div style={{ color: '#1976d2', fontSize: 15, margin: '8px 0 0 18px' }}>Печатает...</div>}
+        {someoneTyping && <div style={{ color: '#1976d2', fontSize: 15, margin: '8px 0 0 28px' }}>Печатает...</div>}
       </div>
       {!onlyInput && !hideInput && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
-          padding: '8px 8px 8px 0',
-          background: '#fff',
-          borderRadius: 0,
+          gap: 10,
+          padding: '14px 18px 14px 10px',
+          background: '#f7f9fc',
+          borderRadius: 18,
           position: 'absolute',
           left: 0,
           right: 0,
           bottom: 0,
           zIndex: 2,
-          boxShadow: '0 -2px 12px #e6eaf1',
+          boxShadow: '0 -2px 16px #e6eaf1',
           width: '100%',
         }}>
           <input
@@ -372,17 +375,28 @@ export const ChatWidget: React.FC<ChatWidgetProps & { limitLastN?: number }> = (
             onKeyDown={e => { if (e.key === 'Enter') handleSend(); }}
             placeholder="Введите сообщение..."
             disabled={loading}
-            style={{ flex: '1 1 0%', borderRadius: 16, background: '#fff', border: '1.5px solid #e6eaf1', fontSize: 16, padding: '12px 18px' }}
+            style={{ flex: '1 1 0%', borderRadius: 16, background: '#fff', border: '1.5px solid #e6eaf1', fontSize: 17, padding: '14px 20px', boxShadow: '0 2px 8px #e6eaf1', outline: 'none', transition: 'border 0.2s' }}
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || loading}
-            style={{ borderRadius: '50%', background: '#2563eb', color: '#fff', fontWeight: 700, fontSize: 20, width: 44, height: 44, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'none', transition: 'background 0.2s' }}
+            style={{ borderRadius: '50%', background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)', color: '#fff', fontWeight: 700, fontSize: 22, width: 48, height: 48, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px #e6eaf1', transition: 'background 0.2s' }}
           >
             <SendOutlined />
           </button>
         </div>
       )}
+      <style>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translate3d(0, 40px, 0); }
+          to { opacity: 1; transform: none; }
+        }
+        @media (max-width: 767px) {
+          .ant-spin {
+            margin: 24px auto !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }; 
