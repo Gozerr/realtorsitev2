@@ -30,6 +30,7 @@ type PropertyCardProps = {
   loading?: boolean;
   showActions?: boolean;
   allowStatusEdit?: boolean;
+  style?: React.CSSProperties;
 };
 
 function normalizePhotos(photos: any): string[] {
@@ -66,6 +67,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   loading = false,
   showActions = true,
   allowStatusEdit = true,
+  style,
 }) => {
   const images: string[] = normalizePhotos(property.photos) || property.images || [];
   const navigate = useNavigate();
@@ -178,7 +180,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
 
   if (loading) {
     return (
-      <Card style={{ width: 300, marginBottom: 16 }}>
+      <Card style={{ width: 300, marginBottom: 16, ...style }}>
         <Skeleton.Image active style={{ width: '100%', height: 200 }} />
         <Skeleton active paragraph={{ rows: 3 }} />
       </Card>
@@ -342,9 +344,11 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
 
   return (
     <div
-      className={styles.glassCard}
-      style={{ margin: 12, boxShadow: '0 4px 24px 0 rgba(10,37,64,0.08)', cursor: isModalActive ? 'default' : 'pointer' }}
-      {...(!isModalActive ? { onClick: handleCardClick } : {})}
+      className={styles.glassCard + (isModalActive ? ' ' + styles.active : '')}
+      style={{ cursor: 'pointer', minHeight: (mode as string) === 'compact' ? 60 : 120, padding: (mode as string) === 'compact' ? 8 : undefined, fontSize: (mode as string) === 'compact' ? 14 : undefined, ...style }}
+      onClick={handleCardClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={handleMouseLeaveSlider}
     >
       <div className={styles.cardImage}>
         <OptimizedImage

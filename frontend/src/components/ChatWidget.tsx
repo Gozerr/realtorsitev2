@@ -247,8 +247,8 @@ export const ChatWidget: React.FC<ChatWidgetProps & { limitLastN?: number }> = (
       borderRadius: 0,
       boxShadow: 'none',
       padding: 0,
-      minHeight: 320,
-      maxHeight: 480,
+      minHeight: 440,
+      maxHeight: 770,
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
@@ -258,7 +258,7 @@ export const ChatWidget: React.FC<ChatWidgetProps & { limitLastN?: number }> = (
       flex: 1,
     }}>
       {/* Основной блок сообщений с нормальными стилями */}
-      <div ref={scrollableRef} style={{ flex: 1, overflowY: 'auto', minHeight: 0, maxHeight: 256, height: 'auto', position: 'relative' }}>
+      <div ref={scrollableRef} style={{ flex: '1 1 0%', overflowY: 'auto', minHeight: 0, height: '100%', position: 'relative', padding: '8px 0 4px' }}>
         {loading ? (
           <Spin style={{ margin: '40px auto', display: 'block' }} />
         ) : visibleMessages.length === 0 ? (
@@ -354,14 +354,17 @@ export const ChatWidget: React.FC<ChatWidgetProps & { limitLastN?: number }> = (
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
-          padding: 0,
+          gap: 8,
+          padding: '8px 8px 8px 0',
           background: '#fff',
           borderRadius: 0,
-          position: 'sticky',
+          position: 'absolute',
+          left: 0,
+          right: 0,
           bottom: 0,
           zIndex: 2,
           boxShadow: '0 -2px 12px #e6eaf1',
+          width: '100%',
         }}>
           <input
             value={input}
@@ -369,7 +372,7 @@ export const ChatWidget: React.FC<ChatWidgetProps & { limitLastN?: number }> = (
             onKeyDown={e => { if (e.key === 'Enter') handleSend(); }}
             placeholder="Введите сообщение..."
             disabled={loading}
-            style={{ flex: 1, borderRadius: 16, background: '#fff', border: '1.5px solid #e6eaf1', fontSize: 16, padding: '12px 18px' }}
+            style={{ flex: '1 1 0%', borderRadius: 16, background: '#fff', border: '1.5px solid #e6eaf1', fontSize: 16, padding: '12px 18px' }}
           />
           <button
             onClick={handleSend}

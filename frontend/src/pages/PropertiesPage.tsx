@@ -44,7 +44,7 @@ export default function PropertiesPage() {
   const [activeTab, setActiveTab] = React.useState<'active' | 'archive' | 'my'>('active');
 
   // Фильтрация по табу (активные/архив/мои) и по всем данным
-  const filteredProperties = properties
+  let filteredProperties = properties
     .filter(p => !!p.id && typeof p.id === 'number')
     .filter(p => {
       const status = (p.status || '').toString().toLowerCase();
@@ -74,6 +74,15 @@ export default function PropertiesPage() {
         (p.status && p.status.toLowerCase().includes(search))
       );
     });
+
+  // Фильтрация по bbox (видимая область карты)
+  if (bbox && Array.isArray(bbox) && bbox.length === 4) {
+    filteredProperties = filteredProperties.filter(p => {
+      if (typeof p.lat !== 'number' || typeof p.lng !== 'number') return false;
+      const [minLng, minLat, maxLng, maxLat] = bbox;
+      return p.lat >= minLat && p.lat <= maxLat && p.lng >= minLng && p.lng <= maxLng;
+    });
+  }
 
   // Открыть большую карту с текущими фильтрами
   const handleOpenBigMap = () => {

@@ -34,6 +34,7 @@ const UniversalMapYandex: React.FC<UniversalMapYandexProps> = ({
   const mapRef = useRef<any>(null);
   const clustererRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const skipNextBoundsChange = useRef(false);
 
   // Инициализация карты
   useEffect(() => {
@@ -47,6 +48,10 @@ const UniversalMapYandex: React.FC<UniversalMapYandexProps> = ({
       });
       if (onBoundsChange) {
         mapRef.current.events.add('boundschange', () => {
+          if (skipNextBoundsChange.current) {
+            skipNextBoundsChange.current = false;
+            return;
+          }
           const bounds = mapRef.current.getBounds();
           if (bounds && bounds[0] && bounds[1]) {
             const [sw, ne] = bounds;
@@ -91,7 +96,10 @@ const UniversalMapYandex: React.FC<UniversalMapYandexProps> = ({
         preset: selectedId === p.id ? 'islands#redIcon' : 'islands#blueIcon',
         iconColor: selectedId === p.id ? '#ff3333' : '#3388ff',
       });
-      placemark.events.add('click', () => onSelect && onSelect(p.id));
+      placemark.events.add('click', () => {
+        skipNextBoundsChange.current = true;
+        onSelect && onSelect(p.id);
+      });
       markersRef.current.push(placemark);
       return placemark;
     });
@@ -129,6 +137,13 @@ const UniversalMapYandex: React.FC<UniversalMapYandexProps> = ({
       mapRef.current.setCenter([Number(selected.lat), Number(selected.lng)], mapRef.current.getZoom(), { duration: 300 });
     }
   }, [selectedId, properties]);
+
+  // Центрирование карты при изменении initialCenter
+  useEffect(() => {
+    if (mapRef.current && initialCenter) {
+      mapRef.current.setCenter(initialCenter, mapRef.current.getZoom(), { duration: 300 });
+    }
+  }, [initialCenter]);
 
   return (
     <div ref={mapContainerRef} style={style} />

@@ -90,9 +90,16 @@ export default function MapSearchPage() {
   }, [bbox, selectedId, filters]);
 
   // Фильтрация по табу (активные/архив)
-  const filteredProperties = properties.filter(p =>
+  let filteredProperties = properties.filter(p =>
     activeTab === 'active' ? p.status !== 'sold' : p.status === 'sold'
   );
+  if (bbox && Array.isArray(bbox) && bbox.length === 4) {
+    filteredProperties = filteredProperties.filter(p => {
+      if (typeof p.lat !== 'number' || typeof p.lng !== 'number') return false;
+      const [minLng, minLat, maxLng, maxLat] = bbox;
+      return p.lat >= minLat && p.lat <= maxLat && p.lng >= minLng && p.lng <= maxLng;
+    });
+  }
 
   // При изменении границ карты обновлять bbox
   const handleBoundsChange = (bboxArr: [number, number, number, number]) => {
@@ -150,9 +157,9 @@ export default function MapSearchPage() {
   return (
     <div className={`big-map-page${show ? ' big-map-page--show' : ''}`} style={{ display: 'flex', height: 'calc(100vh - 80px)', position: 'relative', transition: 'background 0.5s' }}>
       {/* Список объектов слева */}
-      <div style={{ width: 420, overflowY: 'auto', background: '#fff', borderRight: '1px solid #eee', padding: 18, display: 'flex', flexDirection: 'column', transition: 'transform 0.5s', transform: show ? 'translateX(0)' : 'translateX(-100%)', opacity: show ? 1 : 0 }}>
+      <div style={{ width: 340, overflowY: 'auto', background: '#fff', borderRight: '1px solid #eee', padding: 8, display: 'flex', flexDirection: 'column', transition: 'transform 0.5s', transform: show ? 'translateX(0)' : 'translateX(-100%)', opacity: show ? 1 : 0 }}>
         {/* Фильтры */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: 340 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: 300 }}>
           <Button type="default" size="small" style={{ marginBottom: 8 }} onClick={() => setFiltersOpen(v => !v)}>
             {filtersOpen ? 'Скрыть фильтры' : 'Показать фильтры'}
           </Button>
@@ -193,7 +200,7 @@ export default function MapSearchPage() {
           </div>
         </div>
         {/* Список объектов */}
-        <div style={{ background: '#fafbfc', padding: '18px 0', borderRadius: 18, minHeight: 600 }}>
+        <div style={{ background: '#fafbfc', padding: '8px 0', borderRadius: 12, minHeight: 400 }}>
           {tooMany && (
             <div style={{ color: '#ff9800', fontWeight: 500, textAlign: 'center', marginBottom: 12 }}>
               Показаны только первые {maxListCount} объектов для ускорения работы
@@ -206,29 +213,31 @@ export default function MapSearchPage() {
                 style={{
                   display: 'flex',
                   alignItems: 'stretch',
-                  padding: '0 8px',
+                  padding: '0 4px',
                   width: '100%',
                   maxWidth: '100%',
-                  marginBottom: 18,
+                  marginBottom: 8,
                   background: item.id === selectedId ? '#e6f0ff' : 'transparent',
-                  borderRadius: 14,
+                  borderRadius: 10,
                   boxShadow: item.id === selectedId ? '0 0 0 2px #1976d2' : 'none',
                   transition: 'background 0.2s, box-shadow 0.2s',
                   position: 'relative',
                   cursor: 'pointer',
+                  minHeight: 72,
                 }}
                 onClick={() => setSelectedId(item.id)}
               >
                 <PropertyCard
                   property={item}
-                  mode="avito"
+                  mode="compact"
                   showActions={false}
+                  style={{ fontSize: 14, minHeight: 60, padding: 8 }}
                 />
                 {/* Кнопка телефон */}
                 <Button
                   type="default"
                   icon={<PhoneOutlined />}
-                  style={{ position: 'absolute', bottom: 18, right: 18, zIndex: 2, borderRadius: 8, fontWeight: 600 }}
+                  style={{ position: 'absolute', bottom: 10, right: 10, zIndex: 2, borderRadius: 8, fontWeight: 600, height: 32, width: 32, minWidth: 32, padding: 0, fontSize: 16 }}
                   onClick={e => { e.stopPropagation(); setAgentModal({ open: true, agent: item.agent }); }}
                 />
               </div>
